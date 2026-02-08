@@ -1,0 +1,57 @@
+import type { Timestamp } from 'firebase/firestore';
+
+export interface UserProfile {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+  role: 'user' | 'admin';
+  createdAt: Timestamp;
+}
+
+export interface Person {
+  id: string;
+  name: string;
+  photoUrl?: string;
+  category: 'celebrity' | 'politician' | 'public_figure' | 'other';
+  verified: boolean;
+  createdAt: Timestamp;
+  createdBy: string;
+  externalLinks?: {
+    twitter?: string;
+    instagram?: string;
+    website?: string;
+  };
+}
+
+export interface Secret {
+  id: string;
+  personId: string;
+  userId: string;
+  content: string;
+  upvotes: number;
+  downvotes: number;
+  reports: number;
+  status: 'pending' | 'approved' | 'rejected' | 'flagged';
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+  tags?: string[];
+  userVote?: 'upvote' | 'downvote' | null;
+}
+
+export interface Vote {
+  id: string;
+  secretId: string;
+  userId: string;
+  type: 'upvote' | 'downvote';
+  createdAt: Timestamp;
+}
+
+export interface Report {
+  id: string;
+  secretId: string;
+  userId: string;
+  reason: string;
+  status: 'pending' | 'resolved';
+  createdAt: Timestamp;
+}
