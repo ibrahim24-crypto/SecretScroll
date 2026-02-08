@@ -22,8 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { suggestPersonCategory } from '@/ai/flows/suggest-person-category';
-import { Loader2, Sparkles, UserPlus } from 'lucide-react';
+import { Loader2, UserPlus } from 'lucide-react';
 
 const personSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -44,7 +43,6 @@ export function AddPersonDialog() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [isSuggesting, setIsSuggesting] = useState(false);
 
   const form = useForm<PersonFormValues>({
     resolver: zodResolver(personSchema),
@@ -55,30 +53,6 @@ export function AddPersonDialog() {
       photoUrl: '',
     },
   });
-
-  const handleSuggestCategory = async () => {
-    const name = form.getValues('name');
-    const description = form.getValues('description');
-    if (!name || !description) {
-      toast({ title: 'Please enter a name and description first.', variant: 'destructive' });
-      return;
-    }
-    setIsSuggesting(true);
-    try {
-      const result = await suggestPersonCategory({ name, description });
-      if (categories.includes(result.category as any)) {
-        form.setValue('category', result.category as any);
-        toast({ title: 'AI Suggestion', description: `We suggest the category: ${result.category.replace('_', ' ')}` });
-      } else {
-        toast({ title: 'Suggestion not applicable', description: `The AI suggested '${result.category}', which is not a valid option. Please select one manually.`, variant: 'destructive' });
-      }
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'AI suggestion failed', description: 'Could not get a suggestion. Please select a category manually.', variant: 'destructive' });
-    } finally {
-      setIsSuggesting(false);
-    }
-  };
 
   const onSubmit = (data: PersonFormValues) => {
     if (!user) {
@@ -134,23 +108,18 @@ export function AddPersonDialog() {
             <FormField control={form.control} name="description" render={({ field }) => (
               <FormItem><FormLabel>Description</FormLabel><FormControl><Textarea placeholder="Who are they? What are they known for?" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
-            <div className="flex items-end gap-2">
-                <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem className="flex-grow">
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <Button type="button" variant="outline" onClick={handleSuggestCategory} disabled={isSuggesting}>
-                  {isSuggesting ? <Loader2 className="h-4 w-4 animate-spin"/> : <Sparkles className="h-4 w-4"/>}
-                </Button>
-            </div>
+            <FormField control={form.control} name="category" render={({ field }) => (
+              <FormItem className="flex-grow">
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
             <FormField control={form.control} name="photoUrl" render={({ field }) => (
                 <FormItem><FormLabel>Photo URL</FormLabel><FormControl><Input placeholder="https://example.com/image.png" {...field} /></FormControl><FormMessage /></FormItem>
             )} />
