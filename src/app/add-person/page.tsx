@@ -24,6 +24,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { LoginButton } from '@/components/auth/LoginButton';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const personSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -88,24 +90,29 @@ export default function AddPersonPage() {
       return;
     }
 
-    startTransition(async () => {
-      try {
+    startTransition(() => {
+      const uploadAndSubmit = async () => {
         let imageUrl = '';
         if (data.image) {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: data.image }),
-          });
-          const result = await res.json();
-          if (res.ok) {
+          try {
+            const res = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ image: data.image }),
+            });
+            const result = await res.json();
+            if (!res.ok) {
+              throw new Error(result.error || 'Image upload failed');
+            }
             imageUrl = result.url;
-          } else {
-            throw new Error(result.error || 'Image upload failed');
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            toast({ title: 'Error', description: 'Image upload failed. Please try again.', variant: 'destructive' });
+            return;
           }
         }
 
-        await addDoc(collection(db, 'persons'), {
+        const personData = {
           name: data.name,
           description: data.description,
           category: data.category,
@@ -126,14 +133,25 @@ export default function AddPersonPage() {
             facebook: data.facebook || null,
             google: data.google || null,
           },
-        });
+        };
+        
+        const personCollectionRef = collection(db, 'persons');
 
-        toast({ title: 'Success', description: `${data.name} has been added.` });
-        router.push('/');
-      } catch (error) {
-        console.error('Error adding person:', error);
-        toast({ title: 'Error', description: 'Failed to add person. Please try again.', variant: 'destructive' });
-      }
+        addDoc(personCollectionRef, personData)
+          .then(() => {
+            toast({ title: 'Success', description: `${data.name} has been added.` });
+            router.push('/');
+          })
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: personCollectionRef.path,
+              operation: 'create',
+              requestResourceData: personData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+          });
+      };
+      uploadAndSubmit();
     });
   };
 

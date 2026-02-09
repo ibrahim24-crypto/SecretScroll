@@ -21,6 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, PlusCircle } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const secretSchema = z.object({
   content: z.string().min(10, 'Secret must be at least 10 characters long.').max(500, 'Secret is too long.'),
@@ -52,29 +54,37 @@ export function AddSecretDialog({ personId, personName }: AddSecretDialogProps) 
       return;
     }
 
-    startTransition(async () => {
-      try {
-        await addDoc(collection(db, 'secrets'), {
-          personId,
-          userId: user.uid,
-          content: data.content,
-          upvotes: 0,
-          downvotes: 0,
-          reports: 0,
-          status: 'pending',
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
+    startTransition(() => {
+      const secretData = {
+        personId,
+        userId: user.uid,
+        content: data.content,
+        upvotes: 0,
+        downvotes: 0,
+        reports: 0,
+        status: 'pending',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      const secretsCollectionRef = collection(db, 'secrets');
+      
+      addDoc(secretsCollectionRef, secretData)
+        .then(() => {
+          toast({
+            title: 'Secret Submitted',
+            description: 'Your secret is now pending review by our moderators.',
+          });
+          form.reset();
+          setOpen(false);
+        })
+        .catch((error) => {
+          const permissionError = new FirestorePermissionError({
+              path: secretsCollectionRef.path,
+              operation: 'create',
+              requestResourceData: secretData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
-        toast({
-          title: 'Secret Submitted',
-          description: 'Your secret is now pending review by our moderators.',
-        });
-        form.reset();
-        setOpen(false);
-      } catch (error) {
-        console.error('Error adding secret:', error);
-        toast({ title: 'Error', description: 'Failed to submit secret. Please try again.', variant: 'destructive' });
-      }
     });
   };
 

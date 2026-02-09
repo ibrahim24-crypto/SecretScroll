@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import { doc, runTransaction, collection, where, getDocs, query, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface SecretViewProps {
   secret: Secret;
@@ -34,25 +36,23 @@ export function SecretView({ secret: initialSecret }: SecretViewProps) {
     const existingVoteQuery = query(voteCollectionRef, where('userId', '==', user.uid), where('secretId', '==', secret.id));
 
     try {
+      const existingVoteSnapshot = await getDocs(existingVoteQuery);
+      const existingVoteDoc = existingVoteSnapshot.docs[0];
+      const currentVote = existingVoteDoc?.data().type;
+
       await runTransaction(db, async (transaction) => {
         const secretDoc = await transaction.get(secretRef);
         if (!secretDoc.exists()) throw "Secret does not exist!";
-
-        const existingVoteSnapshot = await getDocs(existingVoteQuery);
-        const existingVoteDoc = existingVoteSnapshot.docs[0];
-        const currentVote = secret.userVote;
 
         let upvoteIncrement = 0;
         let downvoteIncrement = 0;
         let newVoteState: 'upvote' | 'downvote' | null = null;
         
-        const batch = writeBatch(db);
-
         if (currentVote === voteType) { // Undoing vote
           if (voteType === 'upvote') upvoteIncrement = -1;
           else downvoteIncrement = -1;
           newVoteState = null;
-          if (existingVoteDoc) batch.delete(existingVoteDoc.ref);
+          if (existingVoteDoc) transaction.delete(existingVoteDoc.ref);
         } else if (currentVote) { // Changing vote
           if (voteType === 'upvote') {
             upvoteIncrement = 1;
@@ -62,13 +62,13 @@ export function SecretView({ secret: initialSecret }: SecretViewProps) {
             downvoteIncrement = 1;
           }
           newVoteState = voteType;
-          if (existingVoteDoc) batch.update(existingVoteDoc.ref, { type: voteType });
+          if (existingVoteDoc) transaction.update(existingVoteDoc.ref, { type: voteType });
         } else { // New vote
           if (voteType === 'upvote') upvoteIncrement = 1;
           else downvoteIncrement = 1;
           newVoteState = voteType;
           const newVoteRef = doc(collection(db, 'votes'));
-          batch.set(newVoteRef, {
+          transaction.set(newVoteRef, {
             secretId: secret.id,
             userId: user.uid,
             type: voteType,
@@ -76,12 +76,11 @@ export function SecretView({ secret: initialSecret }: SecretViewProps) {
           });
         }
         
-        await batch.commit();
-
         const newUpvotes = secretDoc.data().upvotes + upvoteIncrement;
         const newDownvotes = secretDoc.data().downvotes + downvoteIncrement;
         transaction.update(secretRef, { upvotes: newUpvotes, downvotes: newDownvotes });
 
+        // Perform optimistic update in React state
         setSecret(prev => ({
           ...prev,
           upvotes: newUpvotes,
@@ -90,8 +89,12 @@ export function SecretView({ secret: initialSecret }: SecretViewProps) {
         }));
       });
     } catch (e) {
-      console.error("Vote transaction failed: ", e);
-      toast({ title: 'Vote failed', description: 'Could not record your vote. Please try again.', variant: 'destructive' });
+      const permissionError = new FirestorePermissionError({
+          path: secretRef.path,
+          operation: 'update',
+          requestResourceData: { vote: voteType },
+      });
+      errorEmitter.emit('permission-error', permissionError);
     } finally {
       setIsVoting(false);
     }

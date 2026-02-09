@@ -12,6 +12,8 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
@@ -43,19 +45,27 @@ export function AdminDashboard() {
     }
   }, [userProfile, authLoading, router, toast]);
 
-  const handleUpdateStatus = async (secretId: string, status: 'approved' | 'rejected') => {
+  const handleUpdateStatus = (secretId: string, status: 'approved' | 'rejected') => {
     setUpdating(prev => ({ ...prev, [secretId]: true }));
-    try {
-      const secretRef = doc(db, 'secrets', secretId);
-      await updateDoc(secretRef, { status, updatedAt: new Date() });
-      setPendingSecrets(prev => prev.filter(s => s.id !== secretId));
-      toast({ title: 'Success', description: `Secret has been ${status}.` });
-    } catch (error) {
-      console.error('Error updating secret status:', error);
-      toast({ title: 'Error', description: 'Failed to update secret status.', variant: 'destructive' });
-    } finally {
-      setUpdating(prev => ({ ...prev, [secretId]: false }));
-    }
+    const secretRef = doc(db, 'secrets', secretId);
+    const updateData = { status, updatedAt: new Date() };
+
+    updateDoc(secretRef, updateData)
+      .then(() => {
+        setPendingSecrets(prev => prev.filter(s => s.id !== secretId));
+        toast({ title: 'Success', description: `Secret has been ${status}.` });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: secretRef.path,
+          operation: 'update',
+          requestResourceData: updateData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setUpdating(prev => ({ ...prev, [secretId]: false }));
+      });
   };
 
   if (authLoading || loading) {

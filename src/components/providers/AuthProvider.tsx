@@ -6,6 +6,8 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/useAuth';
 import type { UserProfile } from '@/lib/types';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -30,10 +32,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: 'user', // default role
             createdAt: serverTimestamp() as any, // Will be converted to server-side timestamp
           };
-          await setDoc(userRef, newUserProfile);
-          // We need to get the doc again to get the created timestamp
-          const newDocSnap = await getDoc(userRef);
-          setUserProfile(newDocSnap.data() as UserProfile);
+          setDoc(userRef, newUserProfile)
+            .then(async () => {
+                const newDocSnap = await getDoc(userRef);
+                setUserProfile(newDocSnap.data() as UserProfile);
+            })
+            .catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'create',
+                    requestResourceData: newUserProfile,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
         }
       } else {
         setUser(null);
