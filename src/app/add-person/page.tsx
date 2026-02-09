@@ -19,7 +19,6 @@ import { CalendarIcon, Loader2, Plus, PlusSquare, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
-import { LoginButton } from '@/components/auth/LoginButton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
@@ -41,7 +40,7 @@ type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
 export default function CreatePostPage() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -118,23 +117,16 @@ export default function CreatePostPage() {
   };
 
   const onSubmit = (data: PostFormValues) => {
-    if (!user || !userProfile) {
-      toast({ title: 'Authentication Error', description: 'You must be logged in to create a post.', variant: 'destructive' });
-      return;
-    }
-
     startTransition(() => {
       const postData = {
         ...data,
         visibility: 'public' as const,
         eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
-        authorUid: user.uid,
-        authorDisplayName: userProfile.displayName || 'Anonymous',
-        authorPhotoURL: userProfile.photoURL || null,
+        authorUid: user ? user.uid : "anonymous_guest",
         upvotes: 0,
         downvotes: 0,
         reports: 0,
-        status: 'approved' as const, // All posts are now auto-approved
+        status: 'approved' as const,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -157,26 +149,6 @@ export default function CreatePostPage() {
     });
   };
 
-  if (authLoading) {
-    return <div className="container flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-
-  if (!user) {
-    return (
-        <div className="container flex flex-col items-center justify-center py-12 gap-4">
-            <Card className="max-w-md w-full">
-                <CardHeader>
-                    <CardTitle>Login Required</CardTitle>
-                    <CardDescription>You need to be logged in to create a post.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <LoginButton />
-                </CardContent>
-            </Card>
-        </div>
-    )
-  }
-
   return (
     <main className="container py-8">
       <Card className="max-w-2xl mx-auto">
@@ -185,7 +157,7 @@ export default function CreatePostPage() {
             <PlusSquare /> Create a New Post
           </CardTitle>
           <CardDescription>
-            Share something about yourself. Your post will be published immediately.
+            Share something about yourself. Your post will be published immediately and anonymously.
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -19,8 +19,8 @@ export interface UserProfile {
 export interface Post {
   id: string;
   authorUid: string;
-  authorDisplayName: string;
-  authorPhotoURL: string | null;
+  authorDisplayName?: string;
+  authorPhotoURL?: string | null;
   title: string;
   content: string;
   imageUrls?: string[] | null;
@@ -29,7 +29,7 @@ export interface Post {
   upvotes: number;
   downvotes: number;
   reports: number;
-  status: 'pending' | 'approved' | 'rejected' | 'flagged';
+  status: 'approved';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   userVote?: 'upvote' | 'downvote' | null;

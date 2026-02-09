@@ -2,11 +2,10 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { User, ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -116,7 +115,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     <div id={post.id} className="md:hidden relative h-dvh w-screen snap-start flex flex-col justify-end text-white bg-black">
       {/* Background Image/Carousel */}
       {post.imageUrls && post.imageUrls.length > 0 ? (
-        <Carousel className="absolute inset-0 z-0">
+        <Carousel className="absolute inset-0 z-0" opts={{ loop: true, touchAction: 'pan-y' }}>
           <CarouselContent>
             {post.imageUrls.map((url, index) => (
               <CarouselItem key={index}>
@@ -153,14 +152,11 @@ export function PostCard({ post: initialPost }: PostCardProps) {
          <div className="flex-grow"></div> {/* Spacer */}
         <CardHeader className="p-0 mb-4">
             <div className="flex items-center gap-3">
-                <Link href={`/profile/${post.authorUid}`}>
-                    <Avatar className="h-12 w-12 border-2 border-white">
-                        <AvatarImage src={post.authorPhotoURL || ''} alt={post.authorDisplayName} />
-                        <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
-                    </Avatar>
-                </Link>
+                <Avatar className="h-12 w-12 border-2 border-white">
+                    <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+                </Avatar>
                 <div>
-                    <Link href={`/profile/${post.authorUid}`} className="font-semibold text-lg hover:underline">{post.authorDisplayName}</Link>
+                    <p className="font-semibold text-lg">Anonymous</p>
                     <p className="text-sm text-neutral-300">{new Date(post.createdAt.seconds * 1000).toLocaleDateString()}</p>
                 </div>
             </div>
@@ -217,21 +213,18 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
-            <Link href={`/profile/${post.authorUid}`}>
-                <Avatar className="h-10 w-10 border-2 border-primary">
-                    <AvatarImage src={post.authorPhotoURL || ''} alt={post.authorDisplayName} />
-                    <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-                </Avatar>
-            </Link>
+            <Avatar className="h-10 w-10 border-2 border-primary">
+                <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
+            </Avatar>
             <div>
-                <Link href={`/profile/${post.authorUid}`} className="font-semibold hover:underline">{post.authorDisplayName}</Link>
+                <p className="font-semibold">Anonymous</p>
                 <p className="text-xs text-muted-foreground">{new Date(post.createdAt.seconds * 1000).toLocaleDateString()}</p>
             </div>
         </div>
       </CardHeader>
       
       {post.imageUrls && post.imageUrls.length > 0 ? (
-        <Carousel className="w-full">
+        <Carousel className="w-full" opts={{ loop: true, touchAction: 'pan-y' }}>
             <CarouselContent>
                 {post.imageUrls.map((url, index) => (
                     <CarouselItem key={index}>
