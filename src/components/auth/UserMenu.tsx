@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LayoutDashboard, LogOut, User as UserIcon, Edit } from 'lucide-react';
+import { LayoutDashboard, LogOut, User as UserIcon } from 'lucide-react';
 
 export function UserMenu() {
   const { user, userProfile } = useAuth();
@@ -62,18 +62,6 @@ export function UserMenu() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href={`/profile/${user.uid}`}>
-            <UserIcon className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-          </Link>
-        </DropdownMenuItem>
-         <DropdownMenuItem asChild>
-          <Link href="/edit-profile">
-            <Edit className="mr-2 h-4 w-4" />
-            <span>Edit Profile</span>
-          </Link>
-        </DropdownMenuItem>
         {userProfile.role === 'admin' && (
           <DropdownMenuItem asChild>
             <Link href="/admin">

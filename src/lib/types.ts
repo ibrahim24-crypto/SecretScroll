@@ -35,7 +35,18 @@ export interface Post {
   userVote?: 'upvote' | 'downvote' | null;
   eventDate?: Timestamp;
   customFields?: { label: string; value: string }[];
+  commentCount?: number;
 }
+
+export interface Comment {
+  id: string;
+  postId: string;
+  userId: string; // 'anonymous' or user.uid
+  authorDisplayName: string; // 'Anonymous' or user.displayName
+  content: string;
+  createdAt: Timestamp;
+}
+
 
 export interface Vote {
   id: string;

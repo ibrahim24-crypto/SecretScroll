@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb } from 'lucide-react';
+import { User, ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doc, runTransaction, collection, where, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -17,6 +17,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { CommentSheet } from './CommentSheet';
 
 interface PostCardProps {
   post: Post;
@@ -183,6 +184,12 @@ export function PostCard({ post: initialPost }: PostCardProps) {
          <CardFooter className="p-0 w-full flex justify-between items-center text-sm text-neutral-300">
             <Badge variant="secondary" className="capitalize">{post.category}</Badge>
             <div className="flex items-center justify-end space-x-2">
+                 <CommentSheet postId={post.id}>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:text-white">
+                        <MessageCircle className="h-5 w-5" />
+                        <span>{post.commentCount || 0}</span>
+                    </Button>
+                </CommentSheet>
                 <Button
                 variant="ghost"
                 size="sm"
@@ -224,7 +231,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       </CardHeader>
       
       {post.imageUrls && post.imageUrls.length > 0 ? (
-        <Carousel className="w-full" opts={{ loop: true, touchAction: 'pan-y' }}>
+        <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
                 {post.imageUrls.map((url, index) => (
                     <CarouselItem key={index}>
@@ -277,6 +284,12 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         <div className="w-full flex justify-between items-center text-sm text-muted-foreground">
             <Badge variant="secondary" className="capitalize">{post.category}</Badge>
             <div className="flex items-center justify-end space-x-2">
+                <CommentSheet postId={post.id}>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                        <MessageCircle className="h-4 w-4" />
+                        <span>{post.commentCount || 0}</span>
+                    </Button>
+                </CommentSheet>
                 <Button
                 variant="ghost"
                 size="sm"
