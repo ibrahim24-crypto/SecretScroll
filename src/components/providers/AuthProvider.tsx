@@ -21,7 +21,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userRef);
         if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
+          const profile = docSnap.data() as UserProfile;
+          // Ensure the admin user always has the admin role
+          if (user.email === 'ibrahimezzine09@gmail.com' && profile.role !== 'admin') {
+            const adminProfile = { ...profile, role: 'admin' as const };
+            setUserProfile(adminProfile);
+            // Update the role in Firestore asynchronously
+            setDoc(userRef, { role: 'admin' }, { merge: true }).catch((serverError) => {
+               const permissionError = new FirestorePermissionError({
+                    path: userRef.path,
+                    operation: 'update',
+                    requestResourceData: { role: 'admin' },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+          } else {
+             setUserProfile(profile);
+          }
         } else {
           // Create new user profile
           const newUserProfile: UserProfile = {
