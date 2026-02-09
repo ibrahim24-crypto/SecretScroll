@@ -6,9 +6,10 @@ import { LoginButton } from '@/components/auth/LoginButton';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
 import { BookLock, LayoutDashboard, UserPlus } from 'lucide-react';
+import { ThemeToggle } from '../ThemeToggle';
 
 export function Header() {
-  const { user, loading } = useAuth();
+  const { user, userProfile, loading } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,7 +26,7 @@ export function Header() {
                 Add Person
               </Link>
             </Button>
-            {user && user.email === 'ibrahimezzine09@gmail.com' && (
+            {userProfile?.role === 'admin' && (
               <Button asChild variant="outline">
                 <Link href="/admin">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
@@ -33,6 +34,7 @@ export function Header() {
                 </Link>
               </Button>
             )}
+            <ThemeToggle />
             {loading ? null : user ? <UserMenu /> : <LoginButton />}
           </nav>
         </div>

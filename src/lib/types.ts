@@ -13,7 +13,7 @@ export interface Person {
   id: string;
   name: string;
   description?: string;
-  photoUrl?: string;
+  photoUrls?: string[];
   category: 'celebrity' | 'politician' | 'public_figure' | 'other';
   verified: boolean;
   createdAt: Timestamp;

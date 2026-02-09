@@ -17,7 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, UserPlus } from 'lucide-react';
+import { CalendarIcon, Loader2, UserPlus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -31,7 +31,7 @@ const personSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters.'),
   description: z.string().min(10, 'Description is too short.').max(1000, 'Description is too long.'),
   category: z.enum(['celebrity', 'politician', 'public_figure', 'other']),
-  image: z.string().optional(),
+  images: z.array(z.string()).optional(),
   wearsGlasses: z.boolean().default(false),
   gender: z.enum(['male', 'female', 'other'], { required_error: 'Please select a gender.' }),
   birthday: z.date().optional(),
@@ -52,7 +52,7 @@ export default function AddPersonPage() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<PersonFormValues>({
@@ -62,7 +62,7 @@ export default function AddPersonPage() {
       description: '',
       category: 'other',
       wearsGlasses: false,
-      image: '',
+      images: [],
       facebook: '',
       google: '',
       instagram: '',
@@ -72,16 +72,36 @@ export default function AddPersonPage() {
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setImagePreview(result);
-        form.setValue('image', result);
-      };
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files) {
+      const newPreviews: string[] = [];
+      const newImages: string[] = form.getValues('images') || [];
+      const fileArray = Array.from(files);
+
+      fileArray.forEach(file => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              const result = reader.result as string;
+              newImages.push(result);
+              newPreviews.push(result);
+              if (newPreviews.length === fileArray.length) {
+                setImagePreviews(prev => [...prev, ...newPreviews]);
+                form.setValue('images', newImages);
+              }
+          };
+          reader.readAsDataURL(file);
+      });
     }
+  };
+  
+  const removeImage = (index: number) => {
+    const newPreviews = [...imagePreviews];
+    newPreviews.splice(index, 1);
+    setImagePreviews(newPreviews);
+    
+    const newImages = [...(form.getValues('images') || [])];
+    newImages.splice(index, 1);
+    form.setValue('images', newImages);
   };
 
   const onSubmit = (data: PersonFormValues) => {
@@ -92,19 +112,21 @@ export default function AddPersonPage() {
 
     startTransition(() => {
       const uploadAndSubmit = async () => {
-        let imageUrl = '';
-        if (data.image) {
+        const imageUrls: string[] = [];
+        if (data.images && data.images.length > 0) {
           try {
-            const res = await fetch('/api/upload', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ image: data.image }),
-            });
-            const result = await res.json();
-            if (!res.ok) {
-              throw new Error(result.error || 'Image upload failed');
+            for (const image of data.images) {
+              const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image }),
+              });
+              const result = await res.json();
+              if (!res.ok) {
+                throw new Error(result.error || 'Image upload failed');
+              }
+              imageUrls.push(result.url);
             }
-            imageUrl = result.url;
           } catch (error) {
             console.error('Error uploading image:', error);
             toast({ title: 'Error', description: 'Image upload failed. Please try again.', variant: 'destructive' });
@@ -116,7 +138,7 @@ export default function AddPersonPage() {
           name: data.name,
           description: data.description,
           category: data.category,
-          photoUrl: imageUrl || null,
+          photoUrls: imageUrls,
           verified: false,
           createdBy: user.uid,
           createdAt: serverTimestamp(),
@@ -209,10 +231,19 @@ export default function AddPersonPage() {
                         <FormMessage />
                     </FormItem>
                 )} />
-                <FormField control={form.control} name="image" render={({ field }) => (
-                  <FormItem><FormLabel>Photo</FormLabel>
-                    <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} className="pt-2 text-sm"/></FormControl>
-                    {imagePreview && <Image src={imagePreview} alt="Preview" width={100} height={100} className="mt-2 rounded-md object-cover" />}
+                <FormField control={form.control} name="images" render={({ field }) => (
+                  <FormItem><FormLabel>Photos</FormLabel>
+                    <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} multiple className="pt-2 text-sm"/></FormControl>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                        {imagePreviews.map((src, index) => (
+                          <div key={index} className="relative w-24 h-24">
+                              <Image src={src} alt={`Preview ${index}`} fill className="rounded-md object-cover" />
+                              <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                  <X className="h-4 w-4" />
+                              </Button>
+                          </div>
+                        ))}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )} />

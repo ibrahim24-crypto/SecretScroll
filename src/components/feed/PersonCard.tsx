@@ -8,6 +8,13 @@ import { AddSecretDialog } from '../forms/AddSecretDialog';
 import { Verified, Twitter, Instagram, Globe } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
 interface PersonCardProps {
   person: Person;
@@ -16,25 +23,50 @@ interface PersonCardProps {
 
 export function PersonCard({ person, secrets }: PersonCardProps) {
   const placeholderImage = PlaceHolderImages.find(img => img.id === 'person-1') || PlaceHolderImages[0];
+  const images = person.photoUrls && person.photoUrls.length > 0 ? person.photoUrls : [placeholderImage.imageUrl];
 
   return (
-    <Card className="break-inside-avoid shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1">
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Image
-          src={person.photoUrl || placeholderImage.imageUrl}
-          alt={person.name}
-          width={80}
-          height={80}
-          className="rounded-full border-2 border-primary"
-          data-ai-hint={placeholderImage.imageHint}
-        />
-        <div className="flex-grow">
-          <CardTitle className="flex items-center gap-2 font-headline text-2xl">
-            {person.name}
-            {person.verified && <Verified className="h-5 w-5 text-primary" />}
-          </CardTitle>
-          <Badge variant="secondary" className="mt-1 capitalize">{person.category.replace('_', ' ')}</Badge>
-        </div>
+    <Card id={person.id} className="break-inside-avoid shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1">
+      <CardHeader>
+          <div className="flex flex-row items-center gap-4">
+             <div className="relative h-20 w-20">
+                {images.length > 1 ? (
+                    <Carousel className="w-full h-full rounded-full overflow-hidden border-2 border-primary">
+                        <CarouselContent>
+                            {images.map((src, index) => (
+                                <CarouselItem key={index}>
+                                    <Image
+                                        src={src}
+                                        alt={`${person.name} photo ${index + 1}`}
+                                        width={80}
+                                        height={80}
+                                        className="object-cover h-full w-full"
+                                    />
+                                </CarouselItem>
+                            ))}
+                        </CarouselContent>
+                        {/* No controls for small avatar carousel */}
+                    </Carousel>
+                ) : (
+                    <Image
+                        src={images[0]}
+                        alt={person.name}
+                        width={80}
+                        height={80}
+                        className="rounded-full border-2 border-primary"
+                        data-ai-hint={placeholderImage.imageHint}
+                    />
+                )}
+             </div>
+
+            <div className="flex-grow">
+              <CardTitle className="flex items-center gap-2 font-headline text-2xl">
+                {person.name}
+                {person.verified && <Verified className="h-5 w-5 text-primary" />}
+              </CardTitle>
+              <Badge variant="secondary" className="mt-1 capitalize">{person.category.replace('_', ' ')}</Badge>
+            </div>
+          </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {secrets.length > 0 ? (

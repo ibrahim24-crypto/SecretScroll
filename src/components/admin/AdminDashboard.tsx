@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Secret } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,9 +11,20 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Loader2, Trash2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
@@ -68,6 +79,27 @@ export function AdminDashboard() {
       });
   };
 
+  const handleDeleteSecret = (secretId: string) => {
+    setUpdating(prev => ({ ...prev, [secretId]: true }));
+    const secretRef = doc(db, 'secrets', secretId);
+    
+    deleteDoc(secretRef)
+      .then(() => {
+        setPendingSecrets(prev => prev.filter(s => s.id !== secretId));
+        toast({ title: 'Success', description: `Secret has been deleted.` });
+      })
+      .catch((error) => {
+        const permissionError = new FirestorePermissionError({
+          path: secretRef.path,
+          operation: 'delete'
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      })
+      .finally(() => {
+        setUpdating(prev => ({ ...prev, [secretId]: false }));
+      });
+  }
+
   if (authLoading || loading) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -103,6 +135,28 @@ export function AdminDashboard() {
             <p className="p-3 bg-muted rounded-md">{secret.content}</p>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={updating[secret.id]}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the secret.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => handleDeleteSecret(secret.id)}>
+                    {updating[secret.id] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Delete'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button
               variant="outline"
               size="sm"
