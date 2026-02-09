@@ -5,7 +5,6 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Post } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 
@@ -60,9 +59,8 @@ export function ProfileFeed({ userId }: ProfileFeedProps) {
                         <CardTitle>
                            <Link href={`/#${post.id}`} className="text-primary hover:underline">{post.title}</Link>
                         </CardTitle>
-                        <CardDescription className="flex justify-between items-center">
+                        <CardDescription>
                             <span>Submitted on {post.createdAt.toDate().toLocaleDateString()}</span>
-                            <Badge variant={post.status === 'approved' ? 'default' : 'secondary'} className="capitalize">{post.status}</Badge>
                         </CardDescription>
                     </CardHeader>
                     <CardContent>

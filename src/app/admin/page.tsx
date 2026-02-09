@@ -9,7 +9,7 @@ export default function AdminPage() {
         <div className="space-y-2 mb-8">
           <h1 className="text-3xl font-bold tracking-tight font-headline">Admin Dashboard</h1>
           <p className="text-muted-foreground">
-            Moderate pending secrets and manage user reports.
+            Manage and delete posts from the application.
           </p>
         </div>
         <AdminDashboard />

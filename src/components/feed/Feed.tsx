@@ -52,7 +52,6 @@ export function Feed() {
     let postQuery = query(
       collection(db, 'posts'), 
       where('status', '==', 'approved'),
-      where('visibility', '==', 'public'), // Only show public posts on main feed
       orderBy('createdAt', 'desc'), 
       limit(BATCH_SIZE)
     );
@@ -61,7 +60,6 @@ export function Feed() {
       postQuery = query(
         collection(db, 'posts'), 
         where('status', '==', 'approved'), 
-        where('visibility', '==', 'public'),
         orderBy('createdAt', 'desc'), 
         startAfter(lastDoc), 
         limit(BATCH_SIZE)
@@ -136,7 +134,7 @@ export function Feed() {
              {!loading && posts.length === 0 && (
                  <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8">
                      <h2 className="text-2xl font-bold font-headline">Nothing to see here yet.</h2>
-                     <p className="text-muted-foreground mb-4">Once posts are approved by an admin, they will appear here.</p>
+                     <p className="text-muted-foreground mb-4">Be the first one to share a post!</p>
                       {user ? (
                         <Button asChild>
                             <Link href="/add-person">Create the first post</Link>

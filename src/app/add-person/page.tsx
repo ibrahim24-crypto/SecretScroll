@@ -29,7 +29,6 @@ const postSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100, 'Title is too long.'),
   content: z.string().min(10, 'Content is too short.').max(2000, 'Content is too long.'),
   category: z.enum(['funny', 'deep', 'random', 'advice']),
-  visibility: z.enum(['public', 'friends-only', 'private']),
   eventDate: z.date().optional(),
   imageUrls: z.array(z.string()).optional(),
   customFields: z.array(z.object({
@@ -40,7 +39,6 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
-const visibilities = ['public', 'friends-only', 'private'] as const;
 
 export default function CreatePostPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -56,7 +54,6 @@ export default function CreatePostPage() {
       title: '',
       content: '',
       category: 'random',
-      visibility: 'public',
       imageUrls: [],
       customFields: [],
     },
@@ -129,6 +126,7 @@ export default function CreatePostPage() {
     startTransition(() => {
       const postData = {
         ...data,
+        visibility: 'public' as const,
         eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
         authorUid: user.uid,
         authorDisplayName: userProfile.displayName || 'Anonymous',
@@ -136,7 +134,7 @@ export default function CreatePostPage() {
         upvotes: 0,
         downvotes: 0,
         reports: 0,
-        status: 'pending', // All posts must be approved
+        status: 'approved' as const, // All posts are now auto-approved
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -145,7 +143,7 @@ export default function CreatePostPage() {
 
       addDoc(postCollectionRef, postData)
         .then(() => {
-          toast({ title: 'Post Submitted!', description: `Your post is pending review.` });
+          toast({ title: 'Post Published!', description: `Your post is now live.` });
           router.push('/');
         })
         .catch((serverError) => {
@@ -187,7 +185,7 @@ export default function CreatePostPage() {
             <PlusSquare /> Create a New Post
           </CardTitle>
           <CardDescription>
-            Share something about yourself. Your post will be reviewed before it goes public.
+            Share something about yourself. Your post will be published immediately.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -207,18 +205,6 @@ export default function CreatePostPage() {
                         <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
                         <SelectContent>
                             {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="visibility" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Visibility</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Who can see this?" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                            {visibilities.map(vis => <SelectItem key={vis} value={vis} className="capitalize">{vis.replace('_', ' ')}</SelectItem>)}
                         </SelectContent>
                         </Select>
                         <FormMessage />
@@ -342,7 +328,7 @@ export default function CreatePostPage() {
               <div className="flex justify-end">
                 <Button type="submit" disabled={isPending || isUploading}>
                   {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit for Review
+                  Publish Post
                 </Button>
               </div>
             </form>

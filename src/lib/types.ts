@@ -25,7 +25,7 @@ export interface Post {
   content: string;
   imageUrls?: string[] | null;
   category: 'funny' | 'deep' | 'random' | 'advice';
-  visibility: 'public' | 'friends-only' | 'private';
+  visibility: 'public';
   upvotes: number;
   downvotes: number;
   reports: number;

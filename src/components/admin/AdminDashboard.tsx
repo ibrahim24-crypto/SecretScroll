@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, doc, updateDoc, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, orderBy, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Post } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ThumbsUp, ThumbsDown, Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import {
@@ -29,7 +29,7 @@ import Image from 'next/image';
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
-  const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
@@ -42,17 +42,17 @@ export function AdminDashboard() {
         return;
       }
 
-      const fetchPendingPosts = async () => {
+      const fetchPosts = async () => {
         setLoading(true);
         try {
           const postsRef = collection(db, 'posts');
-          const q = query(postsRef, where('status', '==', 'pending'), orderBy('createdAt', 'asc'));
+          const q = query(postsRef, orderBy('createdAt', 'desc'));
           const querySnapshot = await getDocs(q);
-          const posts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-          setPendingPosts(posts);
+          const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+          setPosts(postsData);
         } catch (error) {
-           console.error("Error fetching pending posts:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for moderation.', variant: 'destructive' });
+           console.error("Error fetching posts:", error);
+           toast({ title: 'Error', description: 'Could not fetch posts.', variant: 'destructive' });
            const permissionError = new FirestorePermissionError({ path: 'posts', operation: 'list' });
            errorEmitter.emit('permission-error', permissionError);
         } finally {
@@ -60,32 +60,9 @@ export function AdminDashboard() {
         }
       };
 
-      fetchPendingPosts();
+      fetchPosts();
     }
   }, [userProfile, authLoading, router, toast]);
-
-  const handleUpdateStatus = (postId: string, status: 'approved' | 'rejected') => {
-    setUpdating(prev => ({ ...prev, [postId]: true }));
-    const postRef = doc(db, 'posts', postId);
-    const updateData = { status, updatedAt: new Date() };
-
-    updateDoc(postRef, updateData)
-      .then(() => {
-        setPendingPosts(prev => prev.filter(s => s.id !== postId));
-        toast({ title: 'Success', description: `Post has been ${status}.` });
-      })
-      .catch((error) => {
-        const permissionError = new FirestorePermissionError({
-          path: postRef.path,
-          operation: 'update',
-          requestResourceData: updateData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      })
-      .finally(() => {
-        setUpdating(prev => ({ ...prev, [postId]: false }));
-      });
-  };
 
   const handleDeletePost = (postId: string) => {
     setUpdating(prev => ({ ...prev, [postId]: true }));
@@ -93,7 +70,7 @@ export function AdminDashboard() {
     
     deleteDoc(postRef)
       .then(() => {
-        setPendingPosts(prev => prev.filter(p => p.id !== postId));
+        setPosts(prev => prev.filter(p => p.id !== postId));
         toast({ title: 'Success', description: `Post has been deleted.` });
       })
       .catch((error) => {
@@ -117,7 +94,6 @@ export function AdminDashboard() {
             <CardContent><Skeleton className="h-12 w-full" /></CardContent>
             <CardFooter className="flex justify-end gap-2">
               <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
             </CardFooter>
           </Card>
         ))}
@@ -125,13 +101,13 @@ export function AdminDashboard() {
     );
   }
 
-  if (pendingPosts.length === 0) {
-    return <p className="text-muted-foreground">No pending posts to review. Great job!</p>;
+  if (posts.length === 0) {
+    return <p className="text-muted-foreground">There are no posts in the application yet.</p>;
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {pendingPosts.map(post => (
+      {posts.map(post => (
         <Card key={post.id}>
           <CardHeader>
             <CardTitle>{post.title}</CardTitle>
@@ -147,7 +123,7 @@ export function AdminDashboard() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" size="sm" disabled={updating[post.id]}>
-                  <Trash2 className="mr-2 h-4 w-4" />
+                  {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                   Delete
                 </Button>
               </AlertDialogTrigger>
@@ -166,23 +142,6 @@ export function AdminDashboard() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleUpdateStatus(post.id, 'rejected')}
-              disabled={updating[post.id]}
-            >
-              {updating[post.id] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsDown className="mr-2 h-4 w-4" />}
-              Reject
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleUpdateStatus(post.id, 'approved')}
-              disabled={updating[post.id]}
-            >
-              {updating[post.id] ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ThumbsUp className="mr-2 h-4 w-4" />}
-              Approve
-            </Button>
           </CardFooter>
         </Card>
       ))}
