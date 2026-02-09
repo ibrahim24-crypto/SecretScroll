@@ -11,6 +11,7 @@ import { Button } from '../ui/button';
 import { ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '../layout/Header';
+import { LoginButton } from '../auth/LoginButton';
 
 const BATCH_SIZE = 5; // Smaller batch for mobile-first full-screen view
 
@@ -131,6 +132,19 @@ export function Feed() {
             })}
              {loading && (
                 [...Array(2)].map((_, i) => <PersonCardSkeleton key={`skeleton-mobile-${i}`} isFullScreen={true} />)
+            )}
+             {!loading && posts.length === 0 && (
+                 <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8">
+                     <h2 className="text-2xl font-bold font-headline">Nothing to see here yet.</h2>
+                     <p className="text-muted-foreground mb-4">Once posts are approved by an admin, they will appear here.</p>
+                      {user ? (
+                        <Button asChild>
+                            <Link href="/add-person">Create the first post</Link>
+                        </Button>
+                     ) : (
+                        <LoginButton />
+                     )}
+                 </div>
             )}
              {!loading && !hasMore && posts.length > 0 && (
                  <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8">
