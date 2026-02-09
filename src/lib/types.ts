@@ -23,7 +23,7 @@ export interface Post {
   authorPhotoURL: string | null;
   title: string;
   content: string;
-  imageUrl?: string | null;
+  imageUrls?: string[] | null;
   category: 'funny' | 'deep' | 'random' | 'advice';
   visibility: 'public' | 'friends-only' | 'private';
   upvotes: number;
@@ -34,6 +34,7 @@ export interface Post {
   updatedAt: Timestamp;
   userVote?: 'upvote' | 'downvote' | null;
   eventDate?: Timestamp;
+  customFields?: { label: string; value: string }[];
 }
 
 export interface Vote {

@@ -17,6 +17,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 interface PostCardProps {
   post: Post;
@@ -126,17 +127,33 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         </div>
       </CardHeader>
       
-      {post.imageUrl ? (
-        <Image
-            src={post.imageUrl}
-            alt={post.title}
-            width={600}
-            height={400}
-            className="w-full object-cover aspect-[4/3]"
-        />
+      {post.imageUrls && post.imageUrls.length > 0 ? (
+        <Carousel className="w-full">
+            <CarouselContent>
+                {post.imageUrls.map((url, index) => (
+                    <CarouselItem key={index}>
+                        <Image
+                            src={url}
+                            alt={`${post.title} image ${index + 1}`}
+                            width={600}
+                            height={400}
+                            className="w-full object-cover aspect-[4/3]"
+                        />
+                    </CarouselItem>
+                ))}
+            </CarouselContent>
+            {post.imageUrls.length > 1 && (
+                <>
+                    <CarouselPrevious className="absolute left-2" />
+                    <CarouselNext className="absolute right-2" />
+                </>
+            )}
+        </Carousel>
       ) : (
         <div className="w-full aspect-[4/3] bg-muted flex items-center justify-center p-8 text-muted-foreground/50">
-            {categoryIcons[post.category]}
+            <div className="h-1/2 w-1/2">
+             {categoryIcons[post.category]}
+            </div>
         </div>
       )}
       
@@ -148,6 +165,16 @@ export function PostCard({ post: initialPost }: PostCardProps) {
           </p>
         )}
         <p className="text-secondary-foreground leading-relaxed">{post.content}</p>
+        {post.customFields && post.customFields.length > 0 && (
+            <div className="mt-4 space-y-2 border-t pt-4">
+                {post.customFields.map((field, index) => (
+                    <div key={index} className="flex text-sm">
+                        <span className="font-semibold text-muted-foreground mr-2">{field.label}:</span>
+                        <span className="text-secondary-foreground break-all">{field.value}</span>
+                    </div>
+                ))}
+            </div>
+        )}
       </CardContent>
 
       <CardFooter className="flex flex-col items-start gap-4">

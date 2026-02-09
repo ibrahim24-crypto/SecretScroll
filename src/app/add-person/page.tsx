@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
@@ -15,7 +15,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, PlusSquare, X } from 'lucide-react';
+import { CalendarIcon, Loader2, Plus, PlusSquare, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
@@ -31,7 +31,11 @@ const postSchema = z.object({
   category: z.enum(['funny', 'deep', 'random', 'advice']),
   visibility: z.enum(['public', 'friends-only', 'private']),
   eventDate: z.date().optional(),
-  imageUrl: z.string().optional(),
+  imageUrls: z.array(z.string()).optional(),
+  customFields: z.array(z.object({
+    label: z.string().min(1, "Label cannot be empty."),
+    value: z.string().min(1, "Value cannot be empty."),
+  })).optional(),
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
@@ -42,7 +46,7 @@ export default function CreatePostPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -53,44 +57,67 @@ export default function CreatePostPage() {
       content: '',
       category: 'random',
       visibility: 'public',
-      imageUrl: '',
+      imageUrls: [],
+      customFields: [],
     },
   });
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadstart = () => setIsUploading(true);
-      reader.onloadend = async () => {
-        const result = reader.result as string;
-        try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: result }),
-          });
-          const uploadResult = await res.json();
-          if (!res.ok) {
-            throw new Error(uploadResult.error || 'Image upload failed');
-          }
-          form.setValue('imageUrl', uploadResult.url);
-          setImagePreview(uploadResult.url);
-        } catch (error) {
-          console.error('Error uploading image:', error);
-          toast({ title: 'Error', description: 'Image upload failed. Please try again.', variant: 'destructive' });
-          setImagePreview(null);
-        } finally {
-          setIsUploading(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "customFields"
+  });
 
-  const removeImage = () => {
-    setImagePreview(null);
-    form.setValue('imageUrl', '');
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    
+    setIsUploading(true);
+    const uploadPromises = Array.from(files).map(file => {
+        return new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const result = reader.result as string;
+                try {
+                    const res = await fetch('/api/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: result }),
+                    });
+                    const uploadResult = await res.json();
+                    if (!res.ok) {
+                        throw new Error(uploadResult.error || 'Image upload failed');
+                    }
+                    resolve(uploadResult.url);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    Promise.all(uploadPromises)
+        .then(urls => {
+            const currentUrls = form.getValues('imageUrls') || [];
+            const newUrls = [...currentUrls, ...urls];
+            form.setValue('imageUrls', newUrls);
+            setImagePreviews(newUrls);
+        })
+        .catch(error => {
+            console.error('Error uploading images:', error);
+            toast({ title: 'Error', description: 'One or more images failed to upload.', variant: 'destructive' });
+        })
+        .finally(() => {
+            setIsUploading(false);
+        });
+};
+
+
+  const removeImage = (indexToRemove: number) => {
+    const currentUrls = form.getValues('imageUrls') || [];
+    const newUrls = currentUrls.filter((_, index) => index !== indexToRemove);
+    form.setValue('imageUrls', newUrls);
+    setImagePreviews(newUrls);
   };
 
   const onSubmit = (data: PostFormValues) => {
@@ -241,21 +268,76 @@ export default function CreatePostPage() {
               )}
             />
 
-              <FormField control={form.control} name="imageUrl" render={() => (
-                <FormItem><FormLabel>Optional Image</FormLabel>
-                  <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm"/></FormControl>
+              <FormField control={form.control} name="imageUrls" render={() => (
+                <FormItem><FormLabel>Optional Images</FormLabel>
+                  <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
                   {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
-                  {imagePreview && (
-                    <div className="relative w-48 h-48 mt-2">
-                        <Image src={imagePreview} alt="Image Preview" fill className="rounded-md object-cover" />
-                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeImage} disabled={isUploading}>
-                            <X className="h-4 w-4" />
-                        </Button>
+                  {imagePreviews.length > 0 && (
+                    <div className="flex flex-wrap gap-4 mt-2">
+                        {imagePreviews.map((preview, index) => (
+                            <div key={index} className="relative w-32 h-32">
+                                <Image src={preview} alt="Image Preview" fill className="rounded-md object-cover" />
+                                <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)} disabled={isUploading}>
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
                     </div>
                   )}
                   <FormMessage />
                 </FormItem>
               )} />
+              
+              <div className="space-y-4 rounded-lg border p-4">
+                  <FormLabel className="text-base">Custom Details</FormLabel>
+                  <FormDescription>Add other details about yourself (e.g., First Kiss, Favorite Movie).</FormDescription>
+                  <div className="space-y-4">
+                      {fields.map((field, index) => (
+                          <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
+                              <FormField
+                                  control={form.control}
+                                  name={`customFields.${index}.label`}
+                                  render={({ field }) => (
+                                      <FormItem className="flex-1">
+                                          <FormLabel className="text-xs">Label</FormLabel>
+                                          <FormControl>
+                                              <Input placeholder="e.g., First Kiss" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <FormField
+                                  control={form.control}
+                                  name={`customFields.${index}.value`}
+                                  render={({ field }) => (
+                                      <FormItem className="flex-1">
+                                          <FormLabel className="text-xs">Value</FormLabel>
+                                          <FormControl>
+                                              <Input placeholder="e.g., At the park..." {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                      </FormItem>
+                                  )}
+                              />
+                              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0">
+                                  <X className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      ))}
+                  </div>
+                  <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-4"
+                      onClick={() => append({ label: "", value: "" })}
+                  >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Detail
+                  </Button>
+              </div>
+
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={isPending || isUploading}>

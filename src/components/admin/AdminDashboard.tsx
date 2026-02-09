@@ -23,7 +23,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import Image from 'next/image';
 
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
@@ -139,7 +140,7 @@ export function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {post.imageUrl && <Image src={post.imageUrl} alt={post.title} width={400} height={300} className="rounded-md mb-4 w-full object-cover" />}
+            {post.imageUrls && post.imageUrls[0] && <Image src={post.imageUrls[0]} alt={post.title} width={400} height={300} className="rounded-md mb-4 w-full object-cover" />}
             <p className="p-3 bg-muted rounded-md">{post.content}</p>
           </CardContent>
           <CardFooter className="flex justify-end gap-2">
