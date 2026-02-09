@@ -144,10 +144,12 @@ export function Feed() {
         <div className="hidden md:block">
             <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8">
                 {posts.map((post, index) => {
-                if (posts.length === index + 1) {
-                    return <div ref={lastElementRef} key={post.id}><PostCard post={post} /></div>;
-                }
-                return <PostCard key={post.id} post={post} />;
+                  const isLastElement = posts.length === index + 1;
+                  return (
+                    <div ref={isLastElement ? lastElementRef : null} key={post.id} className="break-inside-avoid">
+                      <PostCard post={post} />
+                    </div>
+                  );
                 })}
             </div>
             {loading && (

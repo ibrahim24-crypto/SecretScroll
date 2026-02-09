@@ -214,7 +214,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
 
 
     {/* Desktop: Original Card view */}
-    <Card id={`${post.id}-desktop`} className="hidden md:flex break-inside-avoid shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
+    <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
             <Link href={`/profile/${post.authorUid}`}>
