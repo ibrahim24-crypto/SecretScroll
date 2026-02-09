@@ -4,7 +4,7 @@ import { AuthProvider } from '@/components/providers/AuthProvider';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'SecretScroll',
+  title: 'SecretReels',
   description: 'Uncover secrets, share truths.',
 };
 

@@ -12,15 +12,24 @@ export interface UserProfile {
 export interface Person {
   id: string;
   name: string;
+  description?: string;
   photoUrl?: string;
   category: 'celebrity' | 'politician' | 'public_figure' | 'other';
   verified: boolean;
   createdAt: Timestamp;
   createdBy: string;
+  wearsGlasses?: boolean;
+  gender?: 'male' | 'female' | 'other';
+  birthday?: Timestamp;
+  firstKiss?: string;
+  schools?: string[];
+  friends?: string[];
   externalLinks?: {
     twitter?: string;
     instagram?: string;
     website?: string;
+    google?: string;
+    facebook?: string;
   };
 }
 
