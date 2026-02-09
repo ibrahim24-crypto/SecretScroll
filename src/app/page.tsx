@@ -20,7 +20,7 @@ export default function HomePage() {
       </main>
 
       {/* Floating Action Button for mobile */}
-      <Button asChild size="lg" className="fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 shadow-lg block md:hidden">
+      <Button asChild size="icon" className="fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 shadow-lg block md:hidden">
         <Link href="/add-person">
           <Plus className="h-8 w-8" />
           <span className="sr-only">Create Post</span>
