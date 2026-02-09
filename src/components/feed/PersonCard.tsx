@@ -111,7 +111,110 @@ export function PostCard({ post: initialPost }: PostCardProps) {
 
 
   return (
-    <Card id={post.id} className="break-inside-avoid shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex flex-col">
+    <>
+    {/* Mobile: Full-screen Reel view */}
+    <div id={post.id} className="md:hidden relative h-dvh w-screen snap-start flex flex-col justify-end text-white bg-black">
+      {/* Background Image/Carousel */}
+      {post.imageUrls && post.imageUrls.length > 0 ? (
+        <Carousel className="absolute inset-0 z-0">
+          <CarouselContent>
+            {post.imageUrls.map((url, index) => (
+              <CarouselItem key={index}>
+                <Image
+                  src={url}
+                  alt={`${post.title} image ${index + 1}`}
+                  fill
+                  className="object-cover"
+                  priority={index === 0}
+                />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+           {post.imageUrls.length > 1 && (
+                <>
+                    <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-20" />
+                    <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-20" />
+                </>
+            )}
+        </Carousel>
+      ) : (
+        <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary via-background to-accent flex items-center justify-center p-16 text-primary-foreground/50">
+            <div className="h-1/2 w-1/2">
+                {categoryIcons[post.category]}
+            </div>
+        </div>
+      )}
+
+       {/* Gradient Overlay for text readability */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
+
+      {/* Content Overlay */}
+      <div className="relative z-20 p-6 flex flex-col justify-end h-full">
+         <div className="flex-grow"></div> {/* Spacer */}
+        <CardHeader className="p-0 mb-4">
+            <div className="flex items-center gap-3">
+                <Link href={`/profile/${post.authorUid}`}>
+                    <Avatar className="h-12 w-12 border-2 border-white">
+                        <AvatarImage src={post.authorPhotoURL || ''} alt={post.authorDisplayName} />
+                        <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
+                    </Avatar>
+                </Link>
+                <div>
+                    <Link href={`/profile/${post.authorUid}`} className="font-semibold text-lg hover:underline">{post.authorDisplayName}</Link>
+                    <p className="text-sm text-neutral-300">{new Date(post.createdAt.seconds * 1000).toLocaleDateString()}</p>
+                </div>
+            </div>
+        </CardHeader>
+        <CardContent className="p-0 mb-4">
+            <CardTitle className="font-headline text-2xl mb-2">{post.title}</CardTitle>
+            {post.eventDate && (
+            <p className="text-sm text-neutral-200 mb-2 font-medium">
+                {format(post.eventDate.toDate(), 'PPP')}
+            </p>
+            )}
+            <p className="text-neutral-100 leading-relaxed">{post.content}</p>
+            {post.customFields && post.customFields.length > 0 && (
+                <div className="mt-4 space-y-2 border-t border-white/20 pt-4">
+                    {post.customFields.map((field, index) => (
+                        <div key={index} className="flex text-sm">
+                            <span className="font-semibold text-neutral-300 mr-2">{field.label}:</span>
+                            <span className="text-neutral-100 break-all">{field.value}</span>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </CardContent>
+         <CardFooter className="p-0 w-full flex justify-between items-center text-sm text-neutral-300">
+            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+            <div className="flex items-center justify-end space-x-2">
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleVote('upvote')}
+                disabled={isVoting || !user}
+                className={cn('flex items-center gap-1 text-white hover:text-white', post.userVote === 'upvote' && 'text-green-400 bg-green-400/20 hover:bg-green-400/30')}
+                >
+                <ArrowUp className="h-5 w-5" />
+                <span>{post.upvotes}</span>
+                </Button>
+                <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleVote('downvote')}
+                disabled={isVoting || !user}
+                className={cn('flex items-center gap-1 text-white hover:text-white', post.userVote === 'downvote' && 'text-red-400 bg-red-400/20 hover:bg-red-400/30')}
+                >
+                <ArrowDown className="h-5 w-5" />
+                <span>{post.downvotes}</span>
+                </Button>
+            </div>
+        </CardFooter>
+      </div>
+    </div>
+
+
+    {/* Desktop: Original Card view */}
+    <Card id={`${post.id}-desktop`} className="hidden md:flex break-inside-avoid shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
       <CardHeader>
         <div className="flex items-center gap-3">
             <Link href={`/profile/${post.authorUid}`}>
@@ -205,5 +308,6 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         </div>
       </CardFooter>
     </Card>
+    </>
   );
 }
