@@ -3,94 +3,93 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, query, where, getDocs, orderBy, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Person, Secret } from '@/lib/types';
-import { PersonCard } from './PersonCard';
+import type { Post } from '@/lib/types';
+import { PostCard } from './PersonCard';
 import { PersonCardSkeleton } from './PersonCardSkeleton';
 import { useAuth } from '@/hooks/useAuth';
 
-const BATCH_SIZE = 5;
-
-type PersonWithSecrets = Person & { secrets: Secret[] };
+const BATCH_SIZE = 8;
 
 export function Feed() {
   const { user } = useAuth();
-  const [people, setPeople] = useState<PersonWithSecrets[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(true);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const observer = useRef<IntersectionObserver>();
 
-  const fetchPeopleAndSecrets = useCallback(async (lastDoc: QueryDocumentSnapshot<DocumentData> | null) => {
+  const fetchPosts = useCallback(async (lastDoc: QueryDocumentSnapshot<DocumentData> | null) => {
     setLoading(true);
 
-    let personQuery = query(collection(db, 'persons'), orderBy('createdAt', 'desc'), limit(BATCH_SIZE));
+    let postQuery = query(
+      collection(db, 'posts'), 
+      where('status', '==', 'approved'), 
+      orderBy('createdAt', 'desc'), 
+      limit(BATCH_SIZE)
+    );
+
     if (lastDoc) {
-      personQuery = query(collection(db, 'persons'), orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(BATCH_SIZE));
+      postQuery = query(
+        collection(db, 'posts'), 
+        where('status', '==', 'approved'), 
+        orderBy('createdAt', 'desc'), 
+        startAfter(lastDoc), 
+        limit(BATCH_SIZE)
+      );
     }
 
-    const personDocs = await getDocs(personQuery);
-    setHasMore(personDocs.docs.length === BATCH_SIZE);
-    setLastVisible(personDocs.docs[personDocs.docs.length - 1]);
-
-    const newPeople = await Promise.all(
-      personDocs.docs.map(async (doc) => {
-        const personData = { id: doc.id, ...doc.data() } as Person;
-        
-        const secretsQuery = query(
-          collection(db, 'secrets'),
-          where('personId', '==', personData.id),
-          where('status', '==', 'approved'),
-          orderBy('createdAt', 'desc'),
-          limit(3)
-        );
-        const secretsSnapshot = await getDocs(secretsQuery);
-        let secrets = secretsSnapshot.docs.map(s => ({ id: s.id, ...s.data() } as Secret));
-
-        if (user) {
-          const votePromises = secrets.map(async (secret) => {
-            const voteRef = collection(db, 'votes');
-            const voteQuery = query(voteRef, where('secretId', '==', secret.id), where('userId', '==', user.uid));
-            const voteSnapshot = await getDocs(voteQuery);
-            if (!voteSnapshot.empty) {
-              return { ...secret, userVote: voteSnapshot.docs[0].data().type };
-            }
-            return secret;
-          });
-          secrets = await Promise.all(votePromises);
-        }
-
-        return { ...personData, secrets };
-      })
-    );
+    const postDocs = await getDocs(postQuery);
+    setHasMore(postDocs.docs.length === BATCH_SIZE);
     
-    setPeople(prev => [...prev, ...newPeople]);
+    const newLastVisible = postDocs.docs[postDocs.docs.length - 1];
+    if (newLastVisible) {
+      setLastVisible(newLastVisible);
+    }
+
+    let newPosts = postDocs.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+
+    if (user) {
+      const votePromises = newPosts.map(async (post) => {
+        const voteRef = collection(db, 'votes');
+        // Note: The collection name for votes is 'votes', and postId should be used
+        const voteQuery = query(voteRef, where('postId', '==', post.id), where('userId', '==', user.uid));
+        const voteSnapshot = await getDocs(voteQuery);
+        if (!voteSnapshot.empty) {
+          return { ...post, userVote: voteSnapshot.docs[0].data().type };
+        }
+        return post;
+      });
+      newPosts = await Promise.all(votePromises);
+    }
+    
+    setPosts(prev => lastDoc ? [...prev, ...newPosts] : newPosts);
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    fetchPeopleAndSecrets(null);
-  }, [fetchPeopleAndSecrets]);
+    fetchPosts(null);
+  }, [fetchPosts]);
 
   const lastElementRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        fetchPeopleAndSecrets(lastVisible);
+        fetchPosts(lastVisible);
       }
     });
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, lastVisible, fetchPeopleAndSecrets]);
+  }, [loading, hasMore, lastVisible, fetchPosts]);
 
 
   return (
     <div>
       <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8">
-        {people.map((p, index) => {
-          if (people.length === index + 1) {
-            return <div ref={lastElementRef} key={p.id}><PersonCard person={p} secrets={p.secrets} /></div>;
+        {posts.map((post, index) => {
+          if (posts.length === index + 1) {
+            return <div ref={lastElementRef} key={post.id}><PostCard post={post} /></div>;
           }
-          return <PersonCard key={p.id} person={p} secrets={p.secrets} />;
+          return <PostCard key={post.id} post={post} />;
         })}
       </div>
       {loading && (
@@ -98,11 +97,11 @@ export function Feed() {
           {[...Array(3)].map((_, i) => <PersonCardSkeleton key={i} />)}
         </div>
       )}
-      {!loading && !hasMore && people.length > 0 && (
+      {!loading && !hasMore && posts.length > 0 && (
         <p className="text-center text-muted-foreground mt-8">You've reached the end of the scroll.</p>
       )}
-       {!loading && people.length === 0 && (
-        <p className="text-center text-muted-foreground mt-8">No secrets yet. Be the first to add one!</p>
+       {!loading && posts.length === 0 && (
+        <p className="text-center text-muted-foreground mt-8">No posts yet. Be the first to create one!</p>
       )}
     </div>
   );

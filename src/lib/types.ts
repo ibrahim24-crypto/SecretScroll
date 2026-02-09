@@ -7,58 +7,45 @@ export interface UserProfile {
   photoURL: string | null;
   role: 'user' | 'admin';
   createdAt: Timestamp;
-}
-
-export interface Person {
-  id: string;
-  name: string;
-  description?: string;
-  photoUrls?: string[];
-  category: 'celebrity' | 'politician' | 'public_figure' | 'other';
-  verified: boolean;
-  createdAt: Timestamp;
-  createdBy: string;
-  wearsGlasses?: boolean;
-  gender?: 'male' | 'female' | 'other';
-  birthday?: Timestamp;
-  firstKiss?: string;
-  schools?: string[];
-  friends?: string[];
+  bio?: string;
   externalLinks?: {
     twitter?: string;
     instagram?: string;
     website?: string;
-    google?: string;
-    facebook?: string;
+    github?: string;
   };
 }
 
-export interface Secret {
+export interface Post {
   id: string;
-  personId: string;
-  userId: string;
+  authorUid: string;
+  authorDisplayName: string;
+  authorPhotoURL: string | null;
+  title: string;
   content: string;
+  imageUrl?: string | null;
+  category: 'funny' | 'deep' | 'random' | 'advice';
+  visibility: 'public' | 'friends-only' | 'private';
   upvotes: number;
   downvotes: number;
   reports: number;
   status: 'pending' | 'approved' | 'rejected' | 'flagged';
   createdAt: Timestamp;
   updatedAt: Timestamp;
-  tags?: string[];
   userVote?: 'upvote' | 'downvote' | null;
 }
 
 export interface Vote {
   id: string;
-  secretId: string;
+  postId: string;
   userId: string;
   type: 'upvote' | 'downvote';
   createdAt: Timestamp;
 }
 
 export interface Report {
-  id: string;
-  secretId: string;
+  id:string;
+  postId: string;
   userId: string;
   reason: string;
   status: 'pending' | 'resolved';

@@ -5,7 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { UserMenu } from '@/components/auth/UserMenu';
 import { Button } from '@/components/ui/button';
-import { BookLock, LayoutDashboard, UserPlus } from 'lucide-react';
+import { BookLock, LayoutDashboard, PlusSquare } from 'lucide-react';
 import { ThemeToggle } from '../ThemeToggle';
 
 export function Header() {
@@ -20,12 +20,14 @@ export function Header() {
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
-            <Button asChild>
-              <Link href="/add-person">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Person
-              </Link>
-            </Button>
+            {user && (
+              <Button asChild>
+                <Link href="/add-person">
+                  <PlusSquare className="mr-2 h-4 w-4" />
+                  Create Post
+                </Link>
+              </Button>
+            )}
             {userProfile?.role === 'admin' && (
               <Button asChild variant="outline">
                 <Link href="/admin">
