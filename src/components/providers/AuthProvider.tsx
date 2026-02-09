@@ -31,6 +31,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             photoURL: user.photoURL,
             role: user.uid === 'BjwgEXkn4fOY9YRcYUQaphoXNw72' ? 'admin' : 'user', // default role
             createdAt: serverTimestamp() as any, // Will be converted to server-side timestamp
+            bio: '',
+            externalLinks: {},
           };
           setDoc(userRef, newUserProfile)
             .then(async () => {

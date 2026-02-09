@@ -5,10 +5,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, MessageSquare, ArrowUp, ArrowDown } from 'lucide-react';
+import { User, ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doc, runTransaction, collection, where, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -16,9 +16,17 @@ import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { Badge } from '../ui/badge';
+import { format } from 'date-fns';
 
 interface PostCardProps {
   post: Post;
+}
+
+const categoryIcons = {
+    funny: <Laugh className="h-full w-full" />,
+    deep: <Sparkles className="h-full w-full" />,
+    random: <BookOpen className="h-full w-full" />,
+    advice: <Lightbulb className="h-full w-full" />,
 }
 
 export function PostCard({ post: initialPost }: PostCardProps) {
@@ -118,18 +126,27 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         </div>
       </CardHeader>
       
-      {post.imageUrl && (
+      {post.imageUrl ? (
         <Image
             src={post.imageUrl}
             alt={post.title}
             width={600}
             height={400}
-            className="w-full object-cover"
+            className="w-full object-cover aspect-[4/3]"
         />
+      ) : (
+        <div className="w-full aspect-[4/3] bg-muted flex items-center justify-center p-8 text-muted-foreground/50">
+            {categoryIcons[post.category]}
+        </div>
       )}
       
       <CardContent className="flex-grow pt-6">
         <CardTitle className="font-headline text-xl mb-2">{post.title}</CardTitle>
+        {post.eventDate && (
+          <p className="text-sm text-muted-foreground mb-2 font-medium">
+            {format(post.eventDate.toDate(), 'PPP')}
+          </p>
+        )}
         <p className="text-secondary-foreground leading-relaxed">{post.content}</p>
       </CardContent>
 

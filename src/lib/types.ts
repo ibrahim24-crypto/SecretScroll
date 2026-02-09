@@ -33,6 +33,7 @@ export interface Post {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   userVote?: 'upvote' | 'downvote' | null;
+  eventDate?: Timestamp;
 }
 
 export interface Vote {

@@ -5,31 +5,38 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, PlusSquare, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon, Loader2, PlusSquare, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Image from 'next/image';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const postSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100, 'Title is too long.'),
   content: z.string().min(10, 'Content is too short.').max(2000, 'Content is too long.'),
   category: z.enum(['funny', 'deep', 'random', 'advice']),
+  visibility: z.enum(['public', 'friends-only', 'private']),
+  eventDate: z.date().optional(),
   imageUrl: z.string().optional(),
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
+const visibilities = ['public', 'friends-only', 'private'] as const;
 
 export default function CreatePostPage() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -45,6 +52,7 @@ export default function CreatePostPage() {
       title: '',
       content: '',
       category: 'random',
+      visibility: 'public',
       imageUrl: '',
     },
   });
@@ -94,10 +102,10 @@ export default function CreatePostPage() {
     startTransition(() => {
       const postData = {
         ...data,
+        eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
         authorUid: user.uid,
         authorDisplayName: userProfile.displayName || 'Anonymous',
         authorPhotoURL: userProfile.photoURL || null,
-        visibility: 'public',
         upvotes: 0,
         downvotes: 0,
         reports: 0,
@@ -164,18 +172,75 @@ export default function CreatePostPage() {
               <FormField control={form.control} name="content" render={({ field }) => (
                 <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
               )} />
-              <FormField control={form.control} name="category" render={({ field }) => (
-                  <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                          {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
-                      </SelectContent>
-                      </Select>
-                      <FormMessage />
-                  </FormItem>
-              )} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <FormField control={form.control} name="category" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+                <FormField control={form.control} name="visibility" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Visibility</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Who can see this?" /></SelectTrigger></FormControl>
+                        <SelectContent>
+                            {visibilities.map(vis => <SelectItem key={vis} value={vis} className="capitalize">{vis.replace('_', ' ')}</SelectItem>)}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+              </div>
+
+               <FormField control={form.control} name="eventDate" render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Optional Event Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-[240px] pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormDescription>
+                    If your post is about a specific event, you can add the date here.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
               <FormField control={form.control} name="imageUrl" render={() => (
                 <FormItem><FormLabel>Optional Image</FormLabel>
                   <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm"/></FormControl>

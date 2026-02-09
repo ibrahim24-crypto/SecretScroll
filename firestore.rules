@@ -3,30 +3,35 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
   
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  
     // Users can only read public profiles, but can write to their own.
     match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if isOwner(userId);
     }
 
-    // Posts can be read by anyone, but only created by logged-in users.
+    // Posts can be read based on visibility. Admins can read all.
     // Only the author or an admin can update or delete a post.
     match /posts/{postId} {
-      allow read: if resource.data.status == 'approved';
+      allow read: if 
+        (resource.data.status == 'approved' && resource.data.visibility == 'public') ||
+        (resource.data.status == 'approved' && (resource.data.visibility == 'private' || resource.data.visibility == 'friends-only') && isOwner(resource.data.authorUid)) ||
+        isAdmin();
       allow create: if request.auth != null;
-      allow update: if request.auth != null && (request.auth.uid == resource.data.authorUid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
-      allow delete: if request.auth != null && (request.auth.uid == resource.data.authorUid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin');
+      allow update: if isOwner(resource.data.authorUid) || isAdmin();
+      allow delete: if isOwner(resource.data.authorUid) || isAdmin();
     }
     
     // Votes can be created, updated, or deleted by the user who owns them.
     match /votes/{voteId} {
-      allow read, write: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow read, write: if isOwner(request.resource.data.userId);
     }
-
-    // Allow admins to read pending/rejected posts for moderation
-    match /posts/{postId} {
-      allow read: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
-    
   }
 }
