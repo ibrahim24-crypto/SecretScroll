@@ -154,12 +154,11 @@ function ImageApprovalQueue() {
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
-           // Re-throwing error to show Next.js overlay.
-           throw error;
+           toast({ title: 'Error', description: 'Could not fetch posts for approval.', variant: 'destructive' });
         } finally {
           setLoading(false);
         }
-    }, []);
+    }, [toast]);
     
     useEffect(() => {
       fetchPendingImages();
@@ -474,5 +473,3 @@ export function AdminDashboard() {
     </Tabs>
   );
 }
-
-    
