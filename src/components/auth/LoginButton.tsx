@@ -5,7 +5,7 @@ import { signInWithPopup } from 'firebase/auth';
 import { auth, googleAuthProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn } from 'lucide-react';
+import { LogIn, Loader2 } from 'lucide-react';
 
 export function LoginButton() {
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export function LoginButton() {
       await signInWithPopup(auth, googleAuthProvider);
       toast({
         title: 'Successfully signed in!',
-        description: 'Welcome to SecretScroll.',
+        description: 'Welcome to SecretReels.',
       });
     } catch (error) {
       console.error('Error signing in with Google: ', error);
@@ -32,9 +32,9 @@ export function LoginButton() {
   };
 
   return (
-    <Button onClick={handleLogin} disabled={loading}>
-      <LogIn className="mr-2 h-4 w-4" />
-      {loading ? 'Signing In...' : 'Sign In with Google'}
+    <Button variant="outline" size="icon" onClick={handleLogin} disabled={loading}>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
+      <span className="sr-only">Sign In with Google</span>
     </Button>
   );
 }
