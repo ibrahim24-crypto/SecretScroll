@@ -179,140 +179,163 @@ export default function CreatePostPage() {
   };
 
   return (
-    <main className="container py-4 md:py-8">
-      <div className="max-w-2xl mx-auto">
-        <header className="flex items-center justify-between mb-6">
+    <div className="flex flex-col h-dvh bg-background md:h-auto md:bg-transparent">
+        {/* Header for mobile */}
+        <header className="sticky top-0 z-10 flex items-center justify-between p-2 border-b bg-background md:hidden">
             <Button variant="ghost" size="icon" asChild>
                 <Link href="/">
                     <ArrowLeft />
                 </Link>
             </Button>
-            <h1 className="text-2xl font-headline font-bold text-center">Create a Post</h1>
-            <Button form="create-post-form" type="submit" disabled={isPending || isUploading}>
+            <h1 className="text-lg font-semibold">Create a Post</h1>
+            <Button form="create-post-form" type="submit" size="sm" disabled={isPending || isUploading}>
               {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Publish
             </Button>
         </header>
-        
-        <Form {...form}>
-          <form id="create-post-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <FormField control={form.control} name="title" render={({ field }) => (
-              <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., A funny thing happened today..." {...field} /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="content" render={({ field }) => (
-              <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
-            )} />
-            
-            <FormField control={form.control} name="category" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
-                    <SelectContent>
-                        {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
-                    </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )} />
 
-             <FormField control={form.control} name="eventDate" render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Optional Event Date</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full md:w-[240px] pl-3 text-left font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
-                  </PopoverContent>
-                  <FormDescription>If your post is about an event, add the date.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-            )} />
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto md:container md:py-8">
+            <div className="max-w-2xl mx-auto p-4 md:p-0">
+                {/* Header for Desktop */}
+                <header className="hidden md:flex items-center justify-between mb-6">
+                    <Button variant="ghost" asChild>
+                        <Link href="/">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Feed
+                        </Link>
+                    </Button>
+                    <h1 className="text-2xl font-headline font-bold">Create a Post</h1>
+                    <Button form="create-post-form" type="submit" disabled={isPending || isUploading}>
+                      {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Publish
+                    </Button>
+                </header>
+                
+                <Form {...form}>
+                  <form id="create-post-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <FormField control={form.control} name="title" render={({ field }) => (
+                      <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., A funny thing happened today..." {...field} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    <FormField control={form.control} name="content" render={({ field }) => (
+                      <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
+                    )} />
+                    
+                    <FormField control={form.control} name="category" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                            <SelectContent>
+                                {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                    )} />
 
-            <FormField control={form.control} name="imageUrls" render={() => (
-              <FormItem>
-                <FormLabel>Optional Images</FormLabel>
-                <FormDescription>Images will be reviewed by an admin before they are visible.</FormDescription>
-                <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
-                {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
-                {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                      {imagePreviews.map((preview, index) => (
-                          <div key={index} className="relative aspect-square">
-                              <Image src={preview} alt="Image Preview" fill className="rounded-md object-cover" />
-                              <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-6 w-6 rounded-full" onClick={() => removeImage(index)} disabled={isUploading}>
-                                  <X className="h-4 w-4" />
+                     <FormField control={form.control} name="eventDate" render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Optional Event Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full md:w-[240px] pl-3 text-left font-normal",
+                                  !field.value && "text-muted-foreground"
+                                )}
+                              >
+                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                               </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
+                          </PopoverContent>
+                          <FormDescription>If your post is about an event, add the date.</FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                    )} />
+
+                    <FormField control={form.control} name="imageUrls" render={() => (
+                      <FormItem>
+                        <FormLabel>Optional Images</FormLabel>
+                        <FormDescription>Images will be reviewed by an admin before they are visible.</FormDescription>
+                        <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
+                        {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
+                        {imagePreviews.length > 0 && (
+                          <div className="grid grid-cols-3 gap-2 mt-2">
+                              {imagePreviews.map((preview, index) => (
+                                  <div key={index} className="relative aspect-square">
+                                      <Image src={preview} alt="Image Preview" fill className="rounded-md object-cover" />
+                                      <Button type="button" variant="destructive" size="icon" className="absolute -top-1 -right-1 h-6 w-6 rounded-full" onClick={() => removeImage(index)} disabled={isUploading}>
+                                          <X className="h-4 w-4" />
+                                      </Button>
+                                  </div>
+                              ))}
                           </div>
-                      ))}
-                  </div>
-                )}
-                <FormMessage />
-              </FormItem>
-            )} />
-            
-            <div className="space-y-4 rounded-lg border p-4">
-                <FormLabel className="text-base">Custom Details</FormLabel>
-                <FormDescription>Add other details (e.g., social links, likes, dislikes).</FormDescription>
-                <div className="space-y-4">
-                    {fields.map((field, index) => (
-                        <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
-                            <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel className="text-xs">Label</FormLabel>
-                                    <FormControl><Input placeholder="e.g., Instagram, First Kiss" {...controllerField} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-
-                            <Controller
-                                control={form.control}
-                                name={`customFields.${index}.value`}
-                                render={({ field: controllerField }) => {
-                                    const currentLabel = watchedCustomFields?.[index]?.label || '';
-                                    const isSocial = isSocialPlatform(currentLabel);
-                                    const Icon = getSocialPlatformIcon(currentLabel);
-
-                                    return (
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    
+                    <div className="space-y-4 rounded-lg border p-4">
+                        <FormLabel className="text-base">Custom Details</FormLabel>
+                        <FormDescription>Add other details (e.g., social links, likes, dislikes).</FormDescription>
+                        <div className="space-y-4">
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
+                                    <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
                                         <FormItem className="flex-1">
-                                            <FormLabel className="text-xs">Value</FormLabel>
-                                            <div className="relative flex items-center">
-                                                {isSocial && Icon && <div className="absolute left-3"><Icon className="h-4 w-4 text-muted-foreground" /></div>}
-                                                <FormControl>
-                                                  <Input
-                                                    placeholder={isSocial ? 'username' : 'e.g., at the park...'}
-                                                    className={cn(isSocial && 'pl-10')}
-                                                    {...controllerField}
-                                                  />
-                                                </FormControl>
-                                            </div>
+                                            <FormLabel className="text-xs">Label</FormLabel>
+                                            <FormControl><Input placeholder="e.g., Instagram, First Kiss" {...controllerField} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
-                                    );
-                                }}
-                            />
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                                    )} />
+
+                                    <Controller
+                                        control={form.control}
+                                        name={`customFields.${index}.value`}
+                                        render={({ field: controllerField }) => {
+                                            const currentLabel = watchedCustomFields?.[index]?.label || '';
+                                            const isSocial = isSocialPlatform(currentLabel);
+                                            const Icon = getSocialPlatformIcon(currentLabel);
+
+                                            return (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel className="text-xs">Value</FormLabel>
+                                                    <div className="relative flex items-center">
+                                                        {isSocial && Icon && (
+                                                            <div className="absolute left-3">
+                                                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <FormControl>
+                                                          <Input
+                                                            placeholder={isSocial ? 'username' : 'e.g., at the park...'}
+                                                            className={cn(isSocial && 'pl-10')}
+                                                            {...controllerField}
+                                                          />
+                                                        </FormControl>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            );
+                                        }}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                                </div>
+                            ))}
                         </div>
-                    ))}
-                </div>
-                <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
+                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
+                    </div>
+                  </form>
+                </Form>
             </div>
-          </form>
-        </Form>
-      </div>
-    </main>
+        </main>
+    </div>
   );
 }

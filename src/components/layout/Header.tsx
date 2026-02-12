@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -20,20 +21,36 @@ export function Header() {
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <nav className="flex items-center space-x-2">
-             {/* Create Post button is always visible now */}
-            <Button asChild>
+            {/* Create Post Button */}
+            <Button asChild className="hidden md:flex">
               <Link href="/add-person">
                 <PlusSquare className="mr-2 h-4 w-4" />
                 Create Post
               </Link>
             </Button>
-            {userProfile?.role === 'admin' && (
-              <Button asChild variant="outline">
-                <Link href="/admin">
-                  <LayoutDashboard className="mr-2 h-4 w-4" />
-                  Admin
+            <Button asChild size="icon" className="md:hidden">
+                <Link href="/add-person">
+                    <PlusSquare className="h-5 w-5" />
+                    <span className="sr-only">Create Post</span>
                 </Link>
-              </Button>
+            </Button>
+
+            {userProfile?.role === 'admin' && (
+            <>
+                {/* Admin Button */}
+                <Button asChild variant="outline" className="hidden md:flex">
+                <Link href="/admin">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    Admin
+                </Link>
+                </Button>
+                <Button asChild variant="outline" size="icon" className="md:hidden">
+                    <Link href="/admin">
+                        <LayoutDashboard className="h-5 w-5" />
+                        <span className="sr-only">Admin</span>
+                    </Link>
+                </Button>
+            </>
             )}
             <ThemeToggle />
             {loading ? null : user ? <UserMenu /> : <LoginButton />}
