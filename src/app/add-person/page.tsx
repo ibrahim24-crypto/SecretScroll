@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +14,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, Plus, PlusSquare, X, ArrowLeft } from 'lucide-react';
+import { CalendarIcon, Loader2, Plus, X, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -23,6 +22,9 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Link from 'next/link';
+import type { AppSettings } from '@/lib/types';
+import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
+
 
 const postSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100, 'Title is too long.'),
@@ -39,13 +41,34 @@ const postSchema = z.object({
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
+function getIconForLabel(label: string) {
+    if (!label) return null;
+    const Icon = getSocialPlatformIcon(label);
+    return <Icon className="h-4 w-4 text-muted-foreground" />;
+}
+
 export default function CreatePostPage() {
-  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [forbiddenWords, setForbiddenWords] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+        try {
+            const settingsRef = doc(db, 'settings', 'config');
+            const docSnap = await getDoc(settingsRef);
+            if(docSnap.exists()) {
+                setForbiddenWords(docSnap.data().forbiddenWords || []);
+            }
+        } catch (error) {
+            console.error("Could not fetch settings", error);
+        }
+    };
+    fetchSettings();
+  }, []);
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -62,6 +85,8 @@ export default function CreatePostPage() {
     control: form.control,
     name: "customFields"
   });
+  
+  const watchedCustomFields = form.watch('customFields');
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -117,11 +142,20 @@ export default function CreatePostPage() {
 
   const onSubmit = (data: PostFormValues) => {
     startTransition(() => {
+        const contentToCheck = `${data.title} ${data.content}`.toLowerCase();
+        const flagged = forbiddenWords.some(word => contentToCheck.includes(word.toLowerCase()));
+        if(flagged) {
+            toast({ title: 'Post contains forbidden words', description: 'Please revise your post content.', variant: 'destructive' });
+            return;
+        }
+
       const postData = {
         ...data,
+        authorUid: "anonymous_guest",
         visibility: 'public' as const,
+        imagesStatus: data.imageUrls && data.imageUrls.length > 0 ? 'pending' : null,
+        isFlagged: false, // Flagging logic moved to admin dashboard based on words
         eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
-        authorUid: user ? user.uid : "anonymous_guest",
         upvotes: 0,
         downvotes: 0,
         reports: 0,
@@ -216,6 +250,7 @@ export default function CreatePostPage() {
             <FormField control={form.control} name="imageUrls" render={() => (
               <FormItem>
                 <FormLabel>Optional Images</FormLabel>
+                <FormDescription>Images will be reviewed by an admin before they are visible.</FormDescription>
                 <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
                 {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
                 {imagePreviews.length > 0 && (
@@ -236,24 +271,44 @@ export default function CreatePostPage() {
             
             <div className="space-y-4 rounded-lg border p-4">
                 <FormLabel className="text-base">Custom Details</FormLabel>
-                <FormDescription>Add other details (e.g., First Kiss, Favorite Movie).</FormDescription>
+                <FormDescription>Add other details (e.g., social links, likes, dislikes).</FormDescription>
                 <div className="space-y-4">
                     {fields.map((field, index) => (
                         <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
-                            <FormField control={form.control} name={`customFields.${index}.label`} render={({ field }) => (
+                            <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
                                 <FormItem className="flex-1">
                                     <FormLabel className="text-xs">Label</FormLabel>
-                                    <FormControl><Input placeholder="e.g., First Kiss" {...field} /></FormControl>
+                                    <FormControl><Input placeholder="e.g., Instagram, First Kiss" {...controllerField} /></FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )} />
-                            <FormField control={form.control} name={`customFields.${index}.value`} render={({ field }) => (
-                                <FormItem className="flex-1">
-                                    <FormLabel className="text-xs">Value</FormLabel>
-                                    <FormControl><Input placeholder="e.g., At the park..." {...field} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
+
+                            <Controller
+                                control={form.control}
+                                name={`customFields.${index}.value`}
+                                render={({ field: controllerField }) => {
+                                    const currentLabel = watchedCustomFields?.[index]?.label || '';
+                                    const isSocial = isSocialPlatform(currentLabel);
+                                    const Icon = getIconForLabel(currentLabel);
+
+                                    return (
+                                        <FormItem className="flex-1">
+                                            <FormLabel className="text-xs">Value</FormLabel>
+                                            <div className="relative flex items-center">
+                                                {isSocial && Icon && <div className="absolute left-3">{Icon}</div>}
+                                                <FormControl>
+                                                  <Input
+                                                    placeholder={isSocial ? 'username' : 'e.g., at the park...'}
+                                                    className={cn(isSocial && 'pl-10')}
+                                                    {...controllerField}
+                                                  />
+                                                </FormControl>
+                                            </div>
+                                            <FormMessage />
+                                        </FormItem>
+                                    );
+                                }}
+                            />
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0"><X className="h-4 w-4" /></Button>
                         </div>
                     ))}

@@ -18,6 +18,8 @@ import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CommentSheet } from './CommentSheet';
+import { getSocialPlatformIcon, getSocialLink, isSocialPlatform } from '@/lib/socials';
+import NextLink from 'next/link';
 
 interface PostCardProps {
   post: Post;
@@ -28,6 +30,29 @@ const categoryIcons = {
     deep: <Sparkles className="h-full w-full" />,
     random: <BookOpen className="h-full w-full" />,
     advice: <Lightbulb className="h-full w-full" />,
+}
+
+function SocialLink({ field }: { field: { label: string, value: string } }) {
+    const Icon = getSocialPlatformIcon(field.label);
+    const href = getSocialLink(field.label, field.value);
+
+    return (
+        <Button asChild variant="ghost" size="sm" className="flex items-center gap-2 text-white hover:text-white hover:bg-white/10 rounded-full h-8 px-3">
+            <NextLink href={href} target="_blank" rel="noopener noreferrer">
+                <Icon className="h-4 w-4" />
+                <span className="text-xs">{field.value}</span>
+            </NextLink>
+        </Button>
+    )
+}
+
+function CustomField({ field }: { field: { label: string, value: string } }) {
+    return (
+        <div className="flex text-sm">
+            <span className="font-semibold text-neutral-300 mr-2">{field.label}:</span>
+            <span className="text-neutral-100 break-all">{field.value}</span>
+        </div>
+    )
 }
 
 export function PostCard({ post: initialPost }: PostCardProps) {
@@ -115,8 +140,8 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     {/* Mobile: Full-screen Reel view */}
     <div id={post.id} className="md:hidden relative h-dvh w-screen snap-start flex flex-col justify-end text-white bg-black">
       {/* Background Image/Carousel */}
-      {post.imageUrls && post.imageUrls.length > 0 ? (
-        <Carousel className="absolute inset-0 z-0" opts={{ loop: true, touchAction: 'pan-y' }}>
+      {post.imagesStatus === 'approved' && post.imageUrls && post.imageUrls.length > 0 ? (
+        <Carousel className="absolute inset-0 z-0" opts={{ loop: true }}>
           <CarouselContent>
             {post.imageUrls.map((url, index) => (
               <CarouselItem key={index}>
@@ -171,13 +196,13 @@ export function PostCard({ post: initialPost }: PostCardProps) {
             )}
             <p className="text-neutral-100 leading-relaxed">{post.content}</p>
             {post.customFields && post.customFields.length > 0 && (
-                <div className="mt-4 space-y-2 border-t border-white/20 pt-4">
-                    {post.customFields.map((field, index) => (
-                        <div key={index} className="flex text-sm">
-                            <span className="font-semibold text-neutral-300 mr-2">{field.label}:</span>
-                            <span className="text-neutral-100 break-all">{field.value}</span>
-                        </div>
-                    ))}
+                <div className="mt-4 pt-4 border-t border-white/20">
+                    <div className="flex flex-wrap gap-2 mb-2">
+                       {post.customFields.filter(f => isSocialPlatform(f.label)).map((field, index) => <SocialLink key={index} field={field} />)}
+                    </div>
+                     <div className="space-y-2">
+                        {post.customFields.filter(f => !isSocialPlatform(f.label)).map((field, index) => <CustomField key={index} field={field} />)}
+                    </div>
                 </div>
             )}
         </CardContent>
@@ -230,7 +255,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         </div>
       </CardHeader>
       
-      {post.imageUrls && post.imageUrls.length > 0 ? (
+      {post.imagesStatus === 'approved' && post.imageUrls && post.imageUrls.length > 0 ? (
         <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
                 {post.imageUrls.map((url, index) => (
@@ -270,7 +295,21 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         <p className="text-secondary-foreground leading-relaxed">{post.content}</p>
         {post.customFields && post.customFields.length > 0 && (
             <div className="mt-4 space-y-2 border-t pt-4">
-                {post.customFields.map((field, index) => (
+                <div className="flex flex-wrap gap-2 mb-2">
+                    {post.customFields.filter(f => isSocialPlatform(f.label)).map((field, index) => {
+                        const Icon = getSocialPlatformIcon(field.label);
+                        const href = getSocialLink(field.label, field.value);
+                        return (
+                             <Button asChild key={index} variant="outline" size="sm" className="gap-2">
+                                <NextLink href={href} target="_blank" rel="noopener noreferrer">
+                                    <Icon className="h-4 w-4" />
+                                    <span>{field.value}</span>
+                                </NextLink>
+                            </Button>
+                        )
+                    })}
+                </div>
+                {post.customFields.filter(f => !isSocialPlatform(f.label)).map((field, index) => (
                     <div key={index} className="flex text-sm">
                         <span className="font-semibold text-muted-foreground mr-2">{field.label}:</span>
                         <span className="text-secondary-foreground break-all">{field.value}</span>

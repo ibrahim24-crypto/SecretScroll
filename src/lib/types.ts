@@ -7,29 +7,22 @@ export interface UserProfile {
   photoURL: string | null;
   role: 'user' | 'admin';
   createdAt: Timestamp;
-  bio?: string;
-  externalLinks?: {
-    twitter?: string;
-    instagram?: string;
-    website?: string;
-    github?: string;
-  };
 }
 
 export interface Post {
   id: string;
   authorUid: string;
-  authorDisplayName?: string;
-  authorPhotoURL?: string | null;
   title: string;
   content: string;
   imageUrls?: string[] | null;
+  imagesStatus: 'pending' | 'approved' | 'rejected' | null;
+  isFlagged: boolean;
   category: 'funny' | 'deep' | 'random' | 'advice';
   visibility: 'public';
   upvotes: number;
   downvotes: number;
   reports: number;
-  status: 'approved';
+  status: 'approved'; // This status is now for the post text itself, which is always approved.
   createdAt: Timestamp;
   updatedAt: Timestamp;
   userVote?: 'upvote' | 'downvote' | null;
@@ -63,4 +56,9 @@ export interface Report {
   reason: string;
   status: 'pending' | 'resolved';
   createdAt: Timestamp;
+}
+
+export interface AppSettings {
+    id?: string;
+    forbiddenWords: string[];
 }
