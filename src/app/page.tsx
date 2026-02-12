@@ -4,9 +4,11 @@ import { Header } from '@/components/layout/Header';
 import { Feed } from '@/components/feed/Feed';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
+  const router = useRouter();
+
   return (
     <>
       {/* Header is visible only on medium screens and up */}
@@ -20,11 +22,12 @@ export default function HomePage() {
       </main>
 
       {/* Floating Action Button for mobile */}
-      <Button asChild className="fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-lg block md:hidden transition-transform hover:scale-110 active:scale-100">
-        <Link href="/add-person">
-          <Plus className="h-8 w-8" />
-          <span className="sr-only">Create Post</span>
-        </Link>
+      <Button
+        onClick={() => router.push('/add-person')}
+        className="fixed bottom-6 right-6 z-50 rounded-full h-16 w-16 p-0 shadow-lg block md:hidden transition-transform hover:scale-110 active:scale-100"
+      >
+        <Plus className="h-8 w-8" />
+        <span className="sr-only">Create Post</span>
       </Button>
     </>
   );
