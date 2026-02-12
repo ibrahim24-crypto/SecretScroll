@@ -152,9 +152,9 @@ function ImageApprovalQueue() {
             const querySnapshot = await getDocs(q);
             const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
-        } catch (error) {
-           console.error("Error fetching posts for approval:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for approval.', variant: 'destructive' });
+        } catch (error: any) {
+           console.error("Error fetching posts for approval. This is likely due to a missing Firestore index. Please check your browser's developer console. The error message from Firebase should contain a link to create the required index automatically.", error);
+           toast({ title: 'Error', description: 'Could not fetch posts for approval. Check the developer console for details.', variant: 'destructive', duration: 8000 });
         } finally {
           setLoading(false);
         }
@@ -231,9 +231,9 @@ function AdminManager() {
             const q = query(usersRef, where('role', '==', 'admin'));
             const querySnapshot = await getDocs(q);
             setAdmins(querySnapshot.docs.map(d => d.data() as UserProfile));
-        } catch (e) {
-            console.error(e);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch admins.'});
+        } catch (e: any) {
+            console.error("Error fetching admins. This might be a missing Firestore index for the 'users' collection. Please check your browser's developer console for an index creation link.", e);
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch admins. Check console.', duration: 8000});
         } finally {
             setLoading(false);
         }
