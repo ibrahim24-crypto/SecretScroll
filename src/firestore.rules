@@ -8,7 +8,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Check role in DB OR if email matches the hardcoded admin email.
+      return request.auth != null && 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+              request.auth.token.email == 'ibrahimezzine09@gmail.com');
     }
   
     // Users can only be created. No one can read other user docs directly for privacy.
@@ -19,12 +22,16 @@ service cloud.firestore {
       allow update: if isAdmin();
     }
 
-    // Posts can be read by anyone and created by anyone.
-    // Only an admin can update or delete a post.
+    // Admins can update/delete. Logged-in users can update vote counts.
     match /posts/{postId} {
       allow read: if true;
       allow create: if true;
-      allow update: if isAdmin();
+      // Admins can update anything.
+      // Authenticated users can ONLY update upvotes and downvotes.
+      allow update: if isAdmin() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes'])
+      );
       allow delete: if isAdmin();
     }
     
