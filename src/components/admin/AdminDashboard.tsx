@@ -153,8 +153,8 @@ function ImageApprovalQueue() {
             const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
         } catch (error: any) {
-           console.error("Error fetching posts for approval. This is likely due to a missing Firestore index. Please check your browser's developer console. The error message from Firebase should contain a link to create the required index automatically.", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for approval. Check the developer console for details.', variant: 'destructive', duration: 8000 });
+           console.error("Error fetching posts for approval:", error);
+           // Error handling temporarily removed for user to fix indexing.
         } finally {
           setLoading(false);
         }
@@ -473,3 +473,5 @@ export function AdminDashboard() {
     </Tabs>
   );
 }
+
+    
