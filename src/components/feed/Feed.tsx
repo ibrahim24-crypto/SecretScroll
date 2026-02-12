@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, query, where, getDocs, orderBy, limit, startAfter, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, startAfter, DocumentData, QueryDocumentSnapshot, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Post } from '@/lib/types';
 import { PostCard } from './PersonCard';
@@ -42,77 +42,96 @@ export function Feed() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const observer = useRef<IntersectionObserver>();
 
-  const fetchPosts = useCallback(async (lastDoc: QueryDocumentSnapshot<DocumentData> | null) => {
-    setLoading(true);
+  const processAndSetUserVotes = useCallback(async (postsToProcess: Post[]): Promise<Post[]> => {
+    if (!user) return postsToProcess;
 
-    let postQuery = query(
-      collection(db, 'posts'), 
+    const votePromises = postsToProcess.map(async (post) => {
+      if (post.userVote !== undefined) return post; // Already processed
+      const voteRef = collection(db, 'votes');
+      const voteQuery = query(voteRef, where('postId', '==', post.id), where('userId', '==', user.uid));
+      const voteSnapshot = await getDocs(voteQuery);
+      if (!voteSnapshot.empty) {
+        return { ...post, userVote: voteSnapshot.docs[0].data().type };
+      }
+      return { ...post, userVote: null }; // Explicitly set to null if no vote
+    });
+    return Promise.all(votePromises);
+  }, [user]);
+
+  // Real-time listener for the initial posts
+  useEffect(() => {
+    setLoading(true);
+    const q = query(
+      collection(db, 'posts'),
       where('status', '==', 'approved'),
-      orderBy('createdAt', 'desc'), 
+      orderBy('createdAt', 'desc'),
       limit(BATCH_SIZE)
     );
 
-    if (lastDoc) {
-      postQuery = query(
-        collection(db, 'posts'), 
-        where('status', '==', 'approved'), 
-        orderBy('createdAt', 'desc'), 
-        startAfter(lastDoc), 
-        limit(BATCH_SIZE)
-      );
-    }
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+      const processedPosts = await processAndSetUserVotes(newPosts);
+
+      setPosts(processedPosts);
+      setHasMore(snapshot.docs.length === BATCH_SIZE);
+      const newLastVisible = snapshot.docs[snapshot.docs.length - 1];
+      setLastVisible(newLastVisible || null);
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching real-time posts:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [processAndSetUserVotes]);
+  
+  const fetchMorePosts = useCallback(async () => {
+    if (!hasMore || loadingMore || !lastVisible) return;
+    setLoadingMore(true);
+
+    const q = query(
+      collection(db, 'posts'),
+      where('status', '==', 'approved'),
+      orderBy('createdAt', 'desc'),
+      startAfter(lastVisible),
+      limit(BATCH_SIZE)
+    );
 
     try {
-        const postDocs = await getDocs(postQuery);
-        setHasMore(postDocs.docs.length === BATCH_SIZE);
-        
-        const newLastVisible = postDocs.docs[postDocs.docs.length - 1];
-        if (newLastVisible) {
-        setLastVisible(newLastVisible);
-        }
+      const documentSnapshots = await getDocs(q);
+      const newPosts = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+      const processedPosts = await processAndSetUserVotes(newPosts);
 
-        let newPosts = postDocs.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-
-        if (user) {
-        const votePromises = newPosts.map(async (post) => {
-            const voteRef = collection(db, 'votes');
-            // Note: The collection name for votes is 'votes', and postId should be used
-            const voteQuery = query(voteRef, where('postId', '==', post.id), where('userId', '==', user.uid));
-            const voteSnapshot = await getDocs(voteQuery);
-            if (!voteSnapshot.empty) {
-            return { ...post, userVote: voteSnapshot.docs[0].data().type };
-            }
-            return post;
-        });
-        newPosts = await Promise.all(votePromises);
-        }
-        
-        setPosts(prev => lastDoc ? [...prev, ...newPosts] : newPosts);
+      setHasMore(documentSnapshots.docs.length === BATCH_SIZE);
+      const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1];
+      setLastVisible(newLastVisible || null);
+      
+      setPosts(prevPosts => [...prevPosts, ...processedPosts]);
     } catch (error) {
-        console.error("Error fetching posts:", error);
+      console.error("Error fetching more posts:", error);
     } finally {
-        setLoading(false);
+      setLoadingMore(false);
     }
-  }, [user]);
+  }, [hasMore, loadingMore, lastVisible, processAndSetUserVotes]);
 
-  useEffect(() => {
-    fetchPosts(null);
-  }, [fetchPosts]);
 
   const lastElementRef = useCallback(node => {
-    if (loading) return;
+    if (loading || loadingMore) return;
     if (observer.current) observer.current.disconnect();
+    
     observer.current = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore) {
-        fetchPosts(lastVisible);
+        fetchMorePosts();
       }
     });
+
     if (node) observer.current.observe(node);
-  }, [loading, hasMore, lastVisible, fetchPosts]);
+  }, [loading, loadingMore, hasMore, fetchMorePosts]);
 
 
   return (
@@ -128,7 +147,7 @@ export function Feed() {
                     </div>
                 );
             })}
-             {loading && (
+             {(loading || loadingMore) && (
                 [...Array(2)].map((_, i) => <PersonCardSkeleton key={`skeleton-mobile-${i}`} isFullScreen={true} />)
             )}
              {!loading && posts.length === 0 && (
@@ -164,7 +183,7 @@ export function Feed() {
                   );
                 })}
             </div>
-            {loading && (
+            {(loading || loadingMore) && (
                 <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 mt-8">
                 {[...Array(3)].map((_, i) => <PersonCardSkeleton key={`skeleton-desktop-${i}`} />)}
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,6 +60,10 @@ export function PostCard({ post: initialPost }: PostCardProps) {
   const [post, setPost] = useState(initialPost);
   const [isVoting, setIsVoting] = useState(false);
   
+  useEffect(() => {
+    setPost(initialPost);
+  }, [initialPost]);
+
   const handleVote = async (voteType: 'upvote' | 'downvote') => {
     if (!user) {
       toast({ title: 'Please sign in to vote.', variant: 'destructive' });
