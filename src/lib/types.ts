@@ -9,13 +9,18 @@ export interface UserProfile {
   createdAt: Timestamp;
 }
 
+export interface PostImage {
+  url: string;
+  status: 'pending' | 'approved' | 'rejected';
+}
+
 export interface Post {
   id: string;
   authorUid: string;
   title: string;
   content: string;
-  imageUrls?: string[] | null;
-  imagesStatus: 'pending' | 'approved' | 'rejected' | null;
+  images?: PostImage[] | null;
+  hasPendingImages?: boolean;
   isFlagged: boolean;
   category: 'funny' | 'deep' | 'random' | 'advice';
   visibility: 'public';

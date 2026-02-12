@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { collection, query, getDocs, doc, orderBy, deleteDoc, where, writeBatch, updateDoc, getDoc, setDoc } from 'firebase/firestore';
+import { collection, query, getDocs, doc, orderBy, deleteDoc, where, writeBatch, updateDoc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import type { Post, UserProfile, AppSettings } from '@/lib/types';
+import type { Post, UserProfile, AppSettings, PostImage } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -148,13 +148,13 @@ function ImageApprovalQueue() {
         setLoading(true);
         try {
             const postsRef = collection(db, 'posts');
-            const q = query(postsRef, where('imagesStatus', '==', 'pending'), orderBy('createdAt', 'desc'));
+            const q = query(postsRef, where('hasPendingImages', '==', true), orderBy('createdAt', 'desc'));
             const querySnapshot = await getDocs(q);
             const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for approval.', variant: 'destructive' });
+           toast({ title: 'Error', description: 'Could not fetch posts for approval. You might be missing a firestore index.', variant: 'destructive', duration: 8000 });
         } finally {
           setLoading(false);
         }
@@ -164,53 +164,90 @@ function ImageApprovalQueue() {
       fetchPendingImages();
     }, [fetchPendingImages]);
 
-    const handleImageDecision = (postId: string, decision: 'approved' | 'rejected') => {
-        setUpdating(prev => ({ ...prev, [postId]: true }));
+    const handleImageDecision = (postId: string, imageUrl: string, decision: 'approved' | 'rejected') => {
+        setUpdating(prev => ({ ...prev, [imageUrl]: true }));
         const postRef = doc(db, 'posts', postId);
-        
-        updateDoc(postRef, { imagesStatus: decision })
-          .then(() => {
-            setPosts(prev => prev.filter(p => p.id !== postId));
-            toast({ title: 'Success', description: `Images have been ${decision}.` });
-          })
-          .catch((error) => {
+
+        runTransaction(db, async (transaction) => {
+            const postDoc = await transaction.get(postRef);
+            if (!postDoc.exists()) {
+                throw new Error("Post does not exist!");
+            }
+
+            const currentImages = (postDoc.data().images || []) as PostImage[];
+            const newImages = currentImages.map(img =>
+                img.url === imageUrl ? { ...img, status: decision } : img
+            );
+            
+            const hasPending = newImages.some(img => img.status === 'pending');
+            
+            transaction.update(postRef, { images: newImages, hasPendingImages: hasPending });
+            return hasPending;
+        }).then((hasPending) => {
+            toast({ title: 'Success', description: `Image has been ${decision}.` });
+            
+            setPosts(prevPosts => {
+                if (!hasPending) {
+                    return prevPosts.filter(p => p.id !== postId);
+                }
+                return prevPosts.map(p => {
+                    if (p.id === postId) {
+                        const updatedImages = p.images?.map(img => 
+                            img.url === imageUrl ? { ...img, status: decision } : img
+                        )
+                        return { ...p, images: updatedImages };
+                    }
+                    return p;
+                });
+            });
+        }).catch((error) => {
             const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'update' });
             errorEmitter.emit('permission-error', permissionError);
-          })
-          .finally(() => {
-            setUpdating(prev => ({ ...prev, [postId]: false }));
-          });
-    }
+        }).finally(() => {
+            setUpdating(prev => ({ ...prev, [imageUrl]: false }));
+        });
+    };
 
     if (loading) {
         return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-80 w-full" />)}</div>
     }
 
-    if (posts.length === 0) {
+    if (posts.every(p => p.images?.every(i => i.status !== 'pending'))) {
         return <p className="text-muted-foreground text-center py-12">No images are pending review.</p>;
     }
 
     return (
-         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {posts.map(post => (
-                <Card key={post.id}>
-                    <CardHeader><CardTitle>{post.title}</CardTitle></CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 gap-2">
-                           {post.imageUrls?.map(url => <Image key={url} src={url} alt={post.title} width={200} height={200} className="rounded-md object-cover aspect-square" />)}
-                        </div>
-                        <p className="p-3 bg-muted rounded-md mt-4 text-sm">{post.content}</p>
-                    </CardContent>
-                    <CardFooter className="flex justify-end gap-2">
-                        <Button variant="outline" size="sm" onClick={() => handleImageDecision(post.id, 'rejected')} disabled={updating[post.id]}>
-                             {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Ban className="mr-2 h-4 w-4" /> Reject</>}
-                        </Button>
-                        <Button variant="default" size="sm" onClick={() => handleImageDecision(post.id, 'approved')} disabled={updating[post.id]}>
-                            {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Check className="mr-2 h-4 w-4" /> Approve</>}
-                        </Button>
-                    </CardFooter>
-                </Card>
-            ))}
+         <div className="grid gap-4 md:grid-cols-2">
+            {posts.map(post => {
+                const pendingImages = post.images?.filter(img => img.status === 'pending');
+                if (!pendingImages || pendingImages.length === 0) return null;
+                
+                return (
+                    <Card key={post.id}>
+                        <CardHeader>
+                            <CardTitle>{post.title}</CardTitle>
+                            <CardDescription>{pendingImages.length} image(s) to review.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                           {pendingImages.map((image, index) => (
+                               <div key={index} className="relative group aspect-square">
+                                   <Image src={image.url} alt={post.title} fill className="rounded-md object-cover" />
+                                   <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       <Button size="icon" variant="destructive" onClick={() => handleImageDecision(post.id, image.url, 'rejected')} disabled={updating[image.url]}>
+                                           {updating[image.url] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Ban className="h-4 w-4" />}
+                                           <span className="sr-only">Reject</span>
+                                       </Button>
+                                       <Button size="icon" variant="default" onClick={() => handleImageDecision(post.id, image.url, 'approved')} disabled={updating[image.url]}>
+                                          {updating[image.url] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
+                                          <span className="sr-only">Approve</span>
+                                       </Button>
+                                   </div>
+                               </div>
+                           ))}
+                        </CardContent>
+                    </Card>
+                )
+            })}
         </div>
     )
 }
@@ -452,7 +489,7 @@ export function AdminDashboard() {
   
   return (
     <Tabs defaultValue="posts" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
+      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
         <TabsTrigger value="posts">Manage Posts</TabsTrigger>
         <TabsTrigger value="images">Image Approval</TabsTrigger>
         <TabsTrigger value="admins">Manage Admins</TabsTrigger>

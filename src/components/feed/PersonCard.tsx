@@ -5,9 +5,8 @@ import Image from 'next/image';
 import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { User, ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doc, runTransaction, collection, where, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -134,16 +133,17 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     }
   };
 
+  const approvedImages = post.images?.filter(img => img.status === 'approved').map(img => img.url) || [];
 
   return (
     <>
     {/* Mobile: Full-screen Reel view */}
     <div id={post.id} className="md:hidden relative h-dvh w-screen snap-start flex flex-col justify-end text-white bg-black">
       {/* Background Image/Carousel */}
-      {post.imagesStatus === 'approved' && post.imageUrls && post.imageUrls.length > 0 ? (
+      {approvedImages.length > 0 ? (
         <Carousel className="absolute inset-0 z-0" opts={{ loop: true }}>
           <CarouselContent>
-            {post.imageUrls.map((url, index) => (
+            {approvedImages.map((url, index) => (
               <CarouselItem key={index}>
                 <Image
                   src={url}
@@ -155,7 +155,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
               </CarouselItem>
             ))}
           </CarouselContent>
-           {post.imageUrls.length > 1 && (
+           {approvedImages.length > 1 && (
                 <>
                     <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-20" />
                     <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-20" />
@@ -176,16 +176,9 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       {/* Content Overlay */}
       <div className="relative z-20 p-6 flex flex-col justify-end h-full">
          <div className="flex-grow"></div> {/* Spacer */}
-        <CardHeader className="p-0 mb-4">
-            <div className="flex items-center gap-3">
-                <Avatar className="h-12 w-12 border-2 border-white">
-                    <AvatarFallback><User className="h-6 w-6" /></AvatarFallback>
-                </Avatar>
-                <div>
-                    <p className="font-semibold text-lg">Anonymous</p>
-                    <p className="text-sm text-neutral-300">{new Date(post.createdAt.seconds * 1000).toLocaleDateString()}</p>
-                </div>
-            </div>
+        <CardHeader className="p-0 mb-4 flex-row items-center justify-between">
+            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+            <p className="text-sm text-neutral-300">{post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
         </CardHeader>
         <CardContent className="p-0 mb-4">
             <CardTitle className="font-headline text-2xl mb-2">{post.title}</CardTitle>
@@ -206,8 +199,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
                 </div>
             )}
         </CardContent>
-         <CardFooter className="p-0 w-full flex justify-between items-center text-sm text-neutral-300">
-            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+         <CardFooter className="p-0 w-full flex justify-end items-center text-sm text-neutral-300">
             <div className="flex items-center justify-end space-x-2">
                  <CommentSheet postId={post.id}>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:text-white">
@@ -243,22 +235,17 @@ export function PostCard({ post: initialPost }: PostCardProps) {
 
     {/* Desktop: Original Card view */}
     <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-primary">
-                <AvatarFallback><User className="h-5 w-5" /></AvatarFallback>
-            </Avatar>
-            <div>
-                <p className="font-semibold">Anonymous</p>
-                <p className="text-xs text-muted-foreground">{new Date(post.createdAt.seconds * 1000).toLocaleDateString()}</p>
-            </div>
+       <CardHeader>
+        <div className="flex items-center justify-between">
+            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+            <p className="text-xs text-muted-foreground">{post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
         </div>
       </CardHeader>
       
-      {post.imagesStatus === 'approved' && post.imageUrls && post.imageUrls.length > 0 ? (
+      {approvedImages.length > 0 ? (
         <Carousel className="w-full" opts={{ loop: true }}>
             <CarouselContent>
-                {post.imageUrls.map((url, index) => (
+                {approvedImages.map((url, index) => (
                     <CarouselItem key={index}>
                         <Image
                             src={url}
@@ -270,7 +257,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
                     </CarouselItem>
                 ))}
             </CarouselContent>
-            {post.imageUrls.length > 1 && (
+            {approvedImages.length > 1 && (
                 <>
                     <CarouselPrevious className="absolute left-2" />
                     <CarouselNext className="absolute right-2" />
@@ -320,8 +307,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       </CardContent>
 
       <CardFooter className="flex flex-col items-start gap-4">
-        <div className="w-full flex justify-between items-center text-sm text-muted-foreground">
-            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+        <div className="w-full flex justify-end items-center text-sm text-muted-foreground">
             <div className="flex items-center justify-end space-x-2">
                 <CommentSheet postId={post.id}>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">

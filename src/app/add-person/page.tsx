@@ -22,7 +22,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import Link from 'next/link';
-import type { AppSettings } from '@/lib/types';
+import type { AppSettings, PostImage } from '@/lib/types';
 import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
 
 
@@ -143,13 +143,23 @@ export default function CreatePostPage() {
             return;
         }
 
+      const images: PostImage[] | null = data.imageUrls && data.imageUrls.length > 0 
+        ? data.imageUrls.map(url => ({ url, status: 'pending' as const })) 
+        : null;
+
+      const hasPendingImages = !!images;
+
       const postData = {
-        ...data,
+        title: data.title,
+        content: data.content,
+        category: data.category,
+        eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
+        customFields: data.customFields,
+        images: images,
+        hasPendingImages: hasPendingImages,
         authorUid: "anonymous_guest",
         visibility: 'public' as const,
-        imagesStatus: data.imageUrls && data.imageUrls.length > 0 ? 'pending' : null,
-        isFlagged: false, // Flagging logic moved to admin dashboard based on words
-        eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
+        isFlagged: false, 
         upvotes: 0,
         downvotes: 0,
         reports: 0,
