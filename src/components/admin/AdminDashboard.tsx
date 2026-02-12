@@ -154,11 +154,12 @@ function ImageApprovalQueue() {
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
-           // Error handling temporarily removed for user to fix indexing.
+           // Re-throwing error to show Next.js overlay.
+           throw error;
         } finally {
           setLoading(false);
         }
-    }, [toast]);
+    }, []);
     
     useEffect(() => {
       fetchPendingImages();
