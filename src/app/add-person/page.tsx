@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -40,12 +41,6 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
-
-function getIconForLabel(label: string) {
-    if (!label) return null;
-    const Icon = getSocialPlatformIcon(label);
-    return <Icon className="h-4 w-4 text-muted-foreground" />;
-}
 
 export default function CreatePostPage() {
   const { toast } = useToast();
@@ -289,13 +284,13 @@ export default function CreatePostPage() {
                                 render={({ field: controllerField }) => {
                                     const currentLabel = watchedCustomFields?.[index]?.label || '';
                                     const isSocial = isSocialPlatform(currentLabel);
-                                    const Icon = getIconForLabel(currentLabel);
+                                    const Icon = getSocialPlatformIcon(currentLabel);
 
                                     return (
                                         <FormItem className="flex-1">
                                             <FormLabel className="text-xs">Value</FormLabel>
                                             <div className="relative flex items-center">
-                                                {isSocial && Icon && <div className="absolute left-3">{Icon}</div>}
+                                                {isSocial && Icon && <div className="absolute left-3"><Icon className="h-4 w-4 text-muted-foreground" /></div>}
                                                 <FormControl>
                                                   <Input
                                                     placeholder={isSocial ? 'username' : 'e.g., at the park...'}
