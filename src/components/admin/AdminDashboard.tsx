@@ -25,6 +25,7 @@ import { Badge } from '../ui/badge';
 import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
 
 
 // #region Post Manager
@@ -111,7 +112,9 @@ function PostManager({ settings }: { settings: AppSettings | null }) {
                                 {post.title}
                                 {post.isFlagged && <Badge variant="destructive">Flagged</Badge>}
                             </CardTitle>
-                            <CardDescription>By Anonymous on {post.createdAt.toDate().toLocaleDateString()}</CardDescription>
+                            <CardDescription>
+                                {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}
+                            </CardDescription>
                         </CardHeader>
                         <CardContent><p className="p-3 bg-muted rounded-md line-clamp-3">{post.content}</p></CardContent>
                         <CardFooter className="flex justify-end gap-2">
@@ -154,7 +157,8 @@ function ImageApprovalQueue() {
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for approval. You might be missing a firestore index.', variant: 'destructive', duration: 8000 });
+           // Re-throw the error to show the Next.js overlay with the index link
+           throw error;
         } finally {
           setLoading(false);
         }
@@ -187,18 +191,18 @@ function ImageApprovalQueue() {
             toast({ title: 'Success', description: `Image has been ${decision}.` });
             
             setPosts(prevPosts => {
-                if (!hasPending) {
-                    return prevPosts.filter(p => p.id !== postId);
-                }
-                return prevPosts.map(p => {
+                const newPosts = prevPosts.map(p => {
                     if (p.id === postId) {
                         const updatedImages = p.images?.map(img => 
                             img.url === imageUrl ? { ...img, status: decision } : img
                         )
-                        return { ...p, images: updatedImages };
+                        // If no more images are pending for this post, filter it out from the view
+                        const stillHasPending = updatedImages?.some(i => i.status === 'pending');
+                        return { ...p, images: updatedImages, hasPendingImages: stillHasPending };
                     }
                     return p;
                 });
+                return newPosts.filter(p => p.hasPendingImages);
             });
         }).catch((error) => {
             const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'update' });
@@ -212,7 +216,7 @@ function ImageApprovalQueue() {
         return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-80 w-full" />)}</div>
     }
 
-    if (posts.every(p => p.images?.every(i => i.status !== 'pending'))) {
+    if (posts.length === 0) {
         return <p className="text-muted-foreground text-center py-12">No images are pending review.</p>;
     }
 
@@ -226,7 +230,7 @@ function ImageApprovalQueue() {
                     <Card key={post.id}>
                         <CardHeader>
                             <CardTitle>{post.title}</CardTitle>
-                            <CardDescription>{pendingImages.length} image(s) to review.</CardDescription>
+                            <CardDescription>{pendingImages.length} image(s) to review for this post.</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                            {pendingImages.map((image, index) => (
@@ -489,7 +493,7 @@ export function AdminDashboard() {
   
   return (
     <Tabs defaultValue="posts" className="w-full">
-      <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4">
         <TabsTrigger value="posts">Manage Posts</TabsTrigger>
         <TabsTrigger value="images">Image Approval</TabsTrigger>
         <TabsTrigger value="admins">Manage Admins</TabsTrigger>
