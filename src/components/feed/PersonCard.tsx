@@ -6,7 +6,7 @@ import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle } from 'lucide-react';
+import { ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle, Images } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doc, runTransaction, collection, where, getDocs, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -205,6 +205,14 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         </CardContent>
          <CardFooter className="p-0 w-full flex justify-end items-center text-sm text-neutral-300">
             <div className="flex items-center justify-end space-x-2">
+                {approvedImages.length > 0 && (
+                    <Button asChild variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:text-white">
+                        <NextLink href={`/post/${post.id}`}>
+                            <Images className="h-5 w-5" />
+                            <span>{approvedImages.length}</span>
+                        </NextLink>
+                    </Button>
+                )}
                  <CommentSheet postId={post.id}>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:text-white">
                         <MessageCircle className="h-5 w-5" />
@@ -313,6 +321,14 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       <CardFooter className="flex flex-col items-start gap-4">
         <div className="w-full flex justify-end items-center text-sm text-muted-foreground">
             <div className="flex items-center justify-end space-x-2">
+                {approvedImages.length > 0 && (
+                    <Button asChild variant="ghost" size="sm" className="flex items-center gap-1">
+                        <NextLink href={`/post/${post.id}`}>
+                            <Images className="h-4 w-4" />
+                            <span>{approvedImages.length}</span>
+                        </NextLink>
+                    </Button>
+                )}
                 <CommentSheet postId={post.id}>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">
                         <MessageCircle className="h-4 w-4" />
