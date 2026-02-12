@@ -157,8 +157,9 @@ function ImageApprovalQueue() {
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
+           toast({ title: 'Error', description: 'Could not fetch posts for approval. You may need to create a Firestore index.', variant: 'destructive', duration: 10000 });
            // Re-throw the error to show the Next.js overlay with the index link
-           throw error;
+           // throw error;
         } finally {
           setLoading(false);
         }
@@ -488,17 +489,19 @@ export function AdminDashboard() {
   }, [userProfile, authLoading, router, toast]);
 
   if (authLoading || loadingSettings) {
-    return <div className="container py-8"><Skeleton className="h-96 w-full" /></div>;
+    return <div className="py-8"><Skeleton className="h-96 w-full" /></div>;
   }
   
   return (
     <Tabs defaultValue="posts" className="w-full">
-      <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4">
-        <TabsTrigger value="posts">Manage Posts</TabsTrigger>
-        <TabsTrigger value="images">Image Approval</TabsTrigger>
-        <TabsTrigger value="admins">Manage Admins</TabsTrigger>
-        <TabsTrigger value="settings">Settings</TabsTrigger>
-      </TabsList>
+      <div className="w-full overflow-x-auto border-b">
+        <TabsList className="inline-flex">
+          <TabsTrigger value="posts">Manage Posts</TabsTrigger>
+          <TabsTrigger value="images">Image Approval</TabsTrigger>
+          <TabsTrigger value="admins">Manage Admins</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+      </div>
       <TabsContent value="posts" className="mt-4">
         <PostManager settings={settings} />
       </TabsContent>
