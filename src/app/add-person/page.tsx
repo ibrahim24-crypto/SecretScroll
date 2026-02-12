@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
@@ -255,9 +254,10 @@ export default function CreatePostPage() {
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
                           </PopoverContent>
-                          <FormDescription>If your post is about an event, add the date.</FormDescription>
-                          <FormMessage />
-                        </FormItem>
+                        </Popover>
+                        <FormDescription>If your post is about an event, add the date.</FormDescription>
+                        <FormMessage />
+                      </FormItem>
                     )} />
 
                     <FormField control={form.control} name="imageUrls" render={() => (
