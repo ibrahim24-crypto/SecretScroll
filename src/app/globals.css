@@ -7,7 +7,8 @@ body {
 }
 
 @layer base {
-  :root {
+  /* Default Theme: Purple */
+  :root, .theme-purple {
     --background: 270 60% 98%;
     --foreground: 270 40% 10%;
     --card: 270 60% 100%;
@@ -34,7 +35,7 @@ body {
     --chart-5: 270 40% 25%;
     --radius: 0.5rem;
   }
-  .dark {
+  .dark, .dark .theme-purple {
     --background: 270 40% 5%;
     --foreground: 270 20% 95%;
     --card: 270 40% 10%;
@@ -59,6 +60,88 @@ body {
     --chart-3: 270 60% 50%;
     --chart-4: 270 50% 40%;
     --chart-5: 270 40% 30%;
+  }
+
+  /* Green Theme */
+  .theme-green {
+    --background: 120 40% 98%;
+    --foreground: 120 25% 10%;
+    --card: 120 40% 100%;
+    --card-foreground: 120 25% 10%;
+    --popover: 120 40% 100%;
+    --popover-foreground: 120 25% 10%;
+    --primary: 145 63% 42%;
+    --primary-foreground: 145 63% 98%;
+    --secondary: 120 20% 94%;
+    --secondary-foreground: 120 10% 30%;
+    --muted: 120 20% 94%;
+    --muted-foreground: 120 5% 45%;
+    --accent: 120 20% 90%;
+    --accent-foreground: 120 10% 20%;
+    --border: 120 20% 88%;
+    --input: 120 20% 88%;
+    --ring: 145 63% 42%;
+  }
+
+  .dark .theme-green {
+    --background: 140 80% 5%;
+    --foreground: 140 10% 95%;
+    --card: 140 80% 10%;
+    --card-foreground: 140 10% 95%;
+    --popover: 140 80% 10%;
+    --popover-foreground: 140 10% 95%;
+    --primary: 150 70% 50%;
+    --primary-foreground: 150 10% 10%;
+    --secondary: 140 50% 15%;
+    --secondary-foreground: 140 10% 80%;
+    --muted: 140 50% 15%;
+    --muted-foreground: 140 10% 60%;
+    --accent: 150 70% 40%;
+    --accent-foreground: 150 10% 98%;
+    --border: 140 50% 20%;
+    --input: 140 50% 20%;
+    --ring: 150 70% 50%;
+  }
+  
+  /* Slate Theme */
+  .theme-slate {
+    --background: 220 10% 98%;
+    --foreground: 220 30% 10%;
+    --card: 220 10% 100%;
+    --card-foreground: 220 30% 10%;
+    --popover: 220 10% 100%;
+    --popover-foreground: 220 30% 10%;
+    --primary: 75 90% 50%; /* lime */
+    --primary-foreground: 75 90% 10%;
+    --secondary: 220 10% 94%;
+    --secondary-foreground: 220 10% 30%;
+    --muted: 220 10% 94%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 10% 90%;
+    --accent-foreground: 220 10% 20%;
+    --border: 220 10% 88%;
+    --input: 220 10% 88%;
+    --ring: 75 90% 50%;
+  }
+
+  .dark .theme-slate {
+    --background: 220 30% 6%; /* slate */
+    --foreground: 220 10% 95%;
+    --card: 220 30% 11%;
+    --card-foreground: 220 10% 95%;
+    --popover: 220 30% 11%;
+    --popover-foreground: 220 10% 95%;
+    --primary: 75 90% 50%; /* lime */
+    --primary-foreground: 75 90% 10%;
+    --secondary: 220 20% 20%;
+    --secondary-foreground: 220 10% 80%;
+    --muted: 220 20% 20%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 75 90% 40%;
+    --accent-foreground: 75 10% 98%;
+    --border: 220 20% 25%;
+    --input: 220 20% 25%;
+    --ring: 75 90% 50%;
   }
 }
 
