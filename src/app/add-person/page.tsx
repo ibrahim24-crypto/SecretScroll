@@ -28,13 +28,13 @@ import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
 
 const postSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.').max(100, 'Title is too long.'),
-  content: z.string().min(10, 'Content is too short.').max(2000, 'Content is too long.'),
-  category: z.enum(['funny', 'deep', 'random', 'advice']),
+  content: z.string().max(2000, 'Content is too long.').optional(),
+  category: z.enum(['funny', 'deep', 'random', 'advice']).optional(),
   eventDate: z.date().optional(),
   imageUrls: z.array(z.string()).optional(),
   customFields: z.array(z.object({
-    label: z.string().min(1, "Label cannot be empty."),
-    value: z.string().min(1, "Value cannot be empty."),
+    label: z.string(),
+    value: z.string(),
   })).optional(),
 });
 
@@ -69,7 +69,6 @@ export default function CreatePostPage() {
     defaultValues: {
       title: '',
       content: '',
-      category: 'random',
       imageUrls: [],
       customFields: [],
     },
@@ -136,7 +135,7 @@ export default function CreatePostPage() {
 
   const onSubmit = (data: PostFormValues) => {
     startTransition(() => {
-        const contentToCheck = `${data.title} ${data.content}`.toLowerCase();
+        const contentToCheck = `${data.title} ${data.content || ''}`.toLowerCase();
         const flagged = forbiddenWords.some(word => contentToCheck.includes(word.toLowerCase()));
         if(flagged) {
             toast({ title: 'Post contains forbidden words', description: 'Please revise your post content.', variant: 'destructive' });
@@ -227,12 +226,12 @@ export default function CreatePostPage() {
                       <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., A funny thing happened today..." {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="content" render={({ field }) => (
-                      <FormItem><FormLabel>Content</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Content (Optional)</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
                     )} />
                     
                     <FormField control={form.control} name="category" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Category</FormLabel>
+                            <FormLabel>Category (Optional)</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
                             <SelectContent>
@@ -245,7 +244,7 @@ export default function CreatePostPage() {
 
                      <FormField control={form.control} name="eventDate" render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel>Optional Event Date</FormLabel>
+                        <FormLabel>Event Date (Optional)</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
@@ -272,7 +271,7 @@ export default function CreatePostPage() {
 
                     <FormField control={form.control} name="imageUrls" render={() => (
                       <FormItem>
-                        <FormLabel>Optional Images</FormLabel>
+                        <FormLabel>Images (Optional)</FormLabel>
                         <FormDescription>Images will be reviewed by an admin before they are visible.</FormDescription>
                         <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
                         {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
@@ -293,7 +292,7 @@ export default function CreatePostPage() {
                     )} />
                     
                     <div className="space-y-4 rounded-lg border p-4">
-                        <FormLabel className="text-base">Custom Details</FormLabel>
+                        <FormLabel className="text-base">Custom Details (Optional)</FormLabel>
                         <FormDescription>Add other details (e.g., social links, likes, dislikes).</FormDescription>
                         <div className="space-y-4">
                             {fields.map((field, index) => (
