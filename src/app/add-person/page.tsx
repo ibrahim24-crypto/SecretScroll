@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,6 +40,7 @@ type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
 export default function CreatePostPage() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -153,7 +155,7 @@ export default function CreatePostPage() {
         customFields: data.customFields,
         images: images,
         hasPendingImages: hasPendingImages,
-        authorUid: "anonymous_guest",
+        authorUid: user ? user.uid : "anonymous_guest",
         visibility: 'public' as const,
         isFlagged: false, 
         upvotes: 0,
