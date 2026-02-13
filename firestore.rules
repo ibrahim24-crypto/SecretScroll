@@ -7,52 +7,58 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    function isAdmin() {
-      // Check role in DB OR if email matches the hardcoded admin email.
+    function isSuperAdmin() {
       return request.auth != null && 
-             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
-              request.auth.token.email == 'ibrahimezzine09@gmail.com');
+             request.auth.token.email == 'ibrahimezzine09@gmail.com';
     }
   
-    // Users can only be created. No one can read other user docs directly for privacy.
-    // Admins can update roles.
-    match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
-      allow create: if request.resource.data.uid == request.auth.uid;
-      allow update: if isAdmin();
+    function getPermissions() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+    }
+    
+    function hasPermission(permission) {
+      return getPermissions()[permission] == true;
     }
 
-    // Admins can update/delete. Logged-in users can update vote counts.
+    function isAdmin() {
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+  
+    match /users/{userId} {
+      allow read: if isOwner(userId) || (isAdmin() && hasPermission('view_users'));
+      allow list: if isAdmin() && hasPermission('view_users');
+      allow create: if request.resource.data.uid == request.auth.uid;
+      allow update: if isSuperAdmin() || (isAdmin() && hasPermission('manage_admins'));
+    }
+
     match /posts/{postId} {
       allow read: if true;
       allow create: if true;
-      // Admins can update anything.
-      // Authenticated users can ONLY update upvotes and downvotes.
-      allow update: if isAdmin() || (
+      allow update: if (
         request.auth != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
-      );
-      allow delete: if isAdmin();
+      ) || (
+        isAdmin() && hasPermission('approve_pictures') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['images', 'hasPendingImages'])
+      ) || isSuperAdmin();
+      allow delete: if isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
     }
     
-    // Votes can be created, updated, or deleted by the user who owns them.
     match /votes/{voteId} {
       allow read, write: if isOwner(request.resource.data.userId);
     }
 
     match /comments/{commentId} {
       allow read: if true;
-      // Anyone can create a comment, as long as it's not empty and reasonably short.
       allow create: if request.resource.data.content != null 
                     && request.resource.data.content.size() > 0
                     && request.resource.data.content.size() < 500;
-      // Only the comment author or an admin can delete a comment.
-      allow delete: if isOwner(resource.data.userId) || isAdmin();
+      allow delete: if isOwner(resource.data.userId) || isSuperAdmin() || (isAdmin() && hasPermission('delete_comments'));
     }
 
-    // Settings can only be read and written by admins.
     match /settings/{settingId} {
-      allow read, write: if isAdmin();
+      allow read, write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
     }
   }
 }

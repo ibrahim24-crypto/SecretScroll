@@ -29,11 +29,14 @@ import { Switch } from '../ui/switch';
 import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 
 const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }[] = [
     { id: 'approve_pictures', label: 'Picture Approval', description: 'Can approve or reject user-submitted pictures.' },
     { id: 'delete_posts', label: 'Post Deletion', description: 'Can delete any post from the feed.' },
+    { id: 'delete_comments', label: 'Comment Deletion', description: 'Can delete any comment from any post.' },
     { id: 'manage_forbidden_words', label: 'Forbidden Words', description: 'Can manage the list of forbidden words.' },
+    { id: 'view_users', label: 'View Users', description: 'Can view the list of all registered users.' },
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
 ];
 
@@ -361,6 +364,69 @@ function ImageApprovalQueue() {
 }
 // #endregion
 
+// #region User Manager
+function UserManager() {
+    const [users, setUsers] = useState<UserProfile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const { toast } = useToast();
+
+    const fetchUsers = useCallback(async () => {
+        setLoading(true);
+        try {
+            const usersRef = collection(db, 'users');
+            const q = query(usersRef, orderBy('createdAt', 'desc'));
+            const querySnapshot = await getDocs(q);
+            const usersData = querySnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as UserProfile));
+            setUsers(usersData);
+        } catch (error: any) {
+           console.error("Error fetching users:", error);
+           if (error.code === 'permission-denied') {
+             toast({ title: 'Permission Denied', description: 'You do not have permission to view users.', variant: 'destructive' });
+           } else if (error.code === 'failed-precondition') {
+             toast({ title: 'Missing Index', description: 'A database index is required to view users. Please check the console for a creation link.', variant: 'destructive', duration: 10000 });
+           } else {
+             toast({ title: 'Error', description: 'Could not fetch users.', variant: 'destructive' });
+           }
+        } finally {
+          setLoading(false);
+        }
+    }, [toast]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, [fetchUsers]);
+
+    if (loading) {
+        return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
+    }
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {users.map(user => (
+                <Card key={user.uid}>
+                    <CardHeader className="flex flex-row items-center gap-4 p-4">
+                         <Avatar>
+                            <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
+                            <AvatarFallback>{user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <CardTitle className="text-base">{user.displayName}</CardTitle>
+                            <CardDescription className="text-xs break-all">{user.email}</CardDescription>
+                        </div>
+                         {user.role === 'admin' && <Badge variant="secondary">Admin</Badge>}
+                    </CardHeader>
+                    <CardFooter className="p-4 pt-0">
+                         <p className="text-xs text-muted-foreground">
+                            Joined: {user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
+                        </p>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+// #endregion
+
 // #region Admin Manager
 function AdminManager() {
     const { user, userProfile } = useAuth();
@@ -613,6 +679,7 @@ export function AdminDashboard() {
         <TabsList className="inline-flex">
           <TabsTrigger value="posts">Manage Posts</TabsTrigger>
           {permissions?.approve_pictures && <TabsTrigger value="images">Image Approval</TabsTrigger>}
+          {permissions?.view_users && <TabsTrigger value="users">Manage Users</TabsTrigger>}
           {permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
           {permissions?.manage_forbidden_words && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
@@ -623,6 +690,11 @@ export function AdminDashboard() {
        {permissions?.approve_pictures && (
          <TabsContent value="images" className="mt-4">
             <ImageApprovalQueue />
+        </TabsContent>
+       )}
+       {permissions?.view_users && (
+        <TabsContent value="users" className="mt-4">
+            <UserManager />
         </TabsContent>
        )}
        {permissions?.manage_admins && (
