@@ -39,7 +39,9 @@ export function ColorThemeProvider({
     THEMES.forEach(t => root.classList.remove(`theme-${t}`));
 
     // Add the current theme class
-    root.classList.add(`theme-${theme}`);
+    if (theme) {
+      root.classList.add(`theme-${theme}`);
+    }
   }, [theme]);
 
   const value = {
