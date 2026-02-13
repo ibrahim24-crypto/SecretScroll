@@ -4,7 +4,7 @@ import { useState, useEffect, useTransition } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { collection, query, where, orderBy, onSnapshot, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import type { Comment as CommentType } from '@/lib/types';
@@ -25,16 +25,23 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
 
   useEffect(() => {
     if (!postId) return;
-    const q = query(collection(db, 'comments'), where('postId', '==', postId), orderBy('createdAt', 'desc'));
+    // The query was causing a crash because it required a composite index in Firestore.
+    // Removed orderBy and will sort on the client instead to resolve the issue.
+    // The ideal long-term solution is to create the index recommended in the browser console logs.
+    const q = query(collection(db, 'comments'), where('postId', '==', postId));
+    
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const commentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommentType));
+      
+      // Sort comments on the client by creation date, newest first.
+      commentsData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
       setComments(commentsData);
     }, (error) => {
         console.error("Error fetching comments:", error);
-        // The error might be due to a missing index, which Firestore logs with a creation link.
         toast({
             title: 'Could not load comments',
-            description: 'There was an issue fetching the comments for this post. Check the console for details.',
+            description: 'There was an issue fetching the comments for this post. This may be due to a missing database index. Check the console for details.',
             variant: 'destructive',
             duration: 9000
         })
