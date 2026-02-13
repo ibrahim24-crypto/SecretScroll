@@ -5,9 +5,21 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/useAuth';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile, AdminPermissions, Permission } from '@/lib/types';
+import { PERMISSIONS } from '@/lib/types';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+
+const allPermissions = Object.keys(PERMISSIONS).reduce((acc, key) => {
+    acc[key as Permission] = true;
+    return acc;
+}, {} as AdminPermissions);
+
+const noPermissions = Object.keys(PERMISSIONS).reduce((acc, key) => {
+    acc[key as Permission] = false;
+    return acc;
+}, {} as AdminPermissions);
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -20,33 +32,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
         const userRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(userRef);
+
         if (docSnap.exists()) {
           const profile = docSnap.data() as UserProfile;
-          // Ensure the admin user always has the admin role
-          if (user.email === 'ibrahimezzine09@gmail.com' && profile.role !== 'admin') {
-            const adminProfile = { ...profile, role: 'admin' as const };
+          
+          if (user.email === 'ibrahimezzine09@gmail.com') {
+            const adminProfile = { ...profile, role: 'admin' as const, permissions: allPermissions };
             setUserProfile(adminProfile);
-            // Update the role in Firestore asynchronously
-            setDoc(userRef, { role: 'admin' }, { merge: true }).catch((serverError) => {
-               const permissionError = new FirestorePermissionError({
-                    path: userRef.path,
-                    operation: 'update',
-                    requestResourceData: { role: 'admin' },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
+            // Ensure super admin permissions are always fully synced in Firestore
+            if (JSON.stringify(profile.permissions) !== JSON.stringify(allPermissions) || profile.role !== 'admin') {
+              setDoc(userRef, { role: 'admin', permissions: allPermissions }, { merge: true });
+            }
           } else {
-             setUserProfile(profile);
+            // Ensure permissions object exists for all users
+            const currentPermissions = profile.permissions || noPermissions;
+            setUserProfile({ ...profile, permissions: currentPermissions });
+            if (!profile.permissions) {
+               setDoc(userRef, { permissions: currentPermissions }, { merge: true });
+            }
           }
         } else {
           // Create new user profile
+          const isSuperAdmin = user.email === 'ibrahimezzine09@gmail.com';
           const newUserProfile: UserProfile = {
             uid: user.uid,
             email: user.email,
             displayName: user.displayName,
             photoURL: user.photoURL,
-            role: user.email === 'ibrahimezzine09@gmail.com' ? 'admin' : 'user', // default role
-            createdAt: serverTimestamp() as any, // Will be converted to server-side timestamp
+            role: isSuperAdmin ? 'admin' : 'user',
+            permissions: isSuperAdmin ? allPermissions : noPermissions,
+            createdAt: serverTimestamp() as any,
           };
           setDoc(userRef, newUserProfile)
             .then(async () => {

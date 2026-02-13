@@ -7,7 +7,21 @@ export interface UserProfile {
   photoURL: string | null;
   role: 'user' | 'admin';
   createdAt: Timestamp;
+  permissions?: AdminPermissions;
 }
+
+export const PERMISSIONS = {
+  approve_pictures: 'Approve or reject user-submitted pictures.',
+  delete_posts: 'Delete any post from the feed.',
+  manage_forbidden_words: 'Add, remove, or edit forbidden words.',
+  manage_admins: 'Grant or revoke admin privileges and their permissions.',
+} as const;
+
+export type Permission = keyof typeof PERMISSIONS;
+
+export type AdminPermissions = {
+  [key in Permission]?: boolean;
+};
 
 export interface PostImage {
   url: string;
