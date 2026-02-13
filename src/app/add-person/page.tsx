@@ -12,23 +12,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2, Plus, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, X, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import Link from 'next/link';
 import type { AppSettings, PostImage } from '@/lib/types';
 import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 
 const postSchema = z.object({
-  title: z.string().min(3, 'Title must be at least 3 characters.').max(100, 'Title is too long.'),
-  content: z.string().max(2000, 'Content is too long.').optional(),
+  title: z.string().min(1, 'Title is required.'),
+  content: z.string().optional(),
   category: z.enum(['funny', 'deep', 'random', 'advice']).optional(),
   eventDate: z.date().optional(),
   imageUrls: z.array(z.string()).optional(),
@@ -242,31 +241,21 @@ export default function CreatePostPage() {
                         </FormItem>
                     )} />
 
-                     <FormField control={form.control} name="eventDate" render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Event Date (Optional)</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
+                    <FormField control={form.control} name="eventDate" render={({ field }) => (
+                        <FormItem className="flex flex-col">
+                            <FormLabel>Event Date (Optional)</FormLabel>
                             <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-full md:w-[240px] pl-3 text-left font-normal",
-                                  !field.value && "text-muted-foreground"
-                                )}
-                              >
-                                {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
+                                <DatePicker
+                                    selected={field.value}
+                                    onChange={field.onChange}
+                                    placeholderText="Select a date"
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                                    wrapperClassName="w-full"
+                                />
                             </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
-                          </PopoverContent>
-                        </Popover>
-                        <FormDescription>If your post is about an event, add the date.</FormDescription>
-                        <FormMessage />
-                      </FormItem>
+                            <FormDescription>If your post is about an event, add the date.</FormDescription>
+                            <FormMessage />
+                        </FormItem>
                     )} />
 
                     <FormField control={form.control} name="imageUrls" render={() => (
