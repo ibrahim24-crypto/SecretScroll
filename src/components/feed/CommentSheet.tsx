@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
@@ -93,7 +93,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
   };
 
   const handleDeleteComment = (comment: CommentType) => {
-    if (!userProfile?.permissions?.delete_comments) {
+    if (!(userProfile?.permissions?.delete_comments || comment.userId === user?.uid)) {
         toast({ title: 'Permission Denied', description: 'You do not have permission to delete this comment.', variant: 'destructive' });
         return;
     }
