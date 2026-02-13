@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useTransition } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, doc, runTransaction } from 'firebase/firestore';
@@ -95,6 +95,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
       <SheetContent side="bottom" className="h-[80dvh] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle>Comments ({comments.length})</SheetTitle>
+          <SheetDescription className="sr-only">A list of comments for the current post.</SheetDescription>
         </SheetHeader>
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-6">

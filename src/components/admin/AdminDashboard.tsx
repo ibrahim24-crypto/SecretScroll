@@ -220,7 +220,10 @@ function PostManager({ settings }: { settings: AppSettings | null }) {
                                     {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                                 </Button></AlertDialogTrigger>
                                 <AlertDialogContent>
-                                    <AlertDialogHeader><AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle><AlertDialogDescription>This will permanently delete the post.</AlertDialogDescription></AlertDialogHeader>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>This will permanently delete the post.</AlertDialogDescription>
+                                    </AlertDialogHeader>
                                     <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                                     <AlertDialogAction onClick={() => handleDeletePost(post.id)}>{updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}</AlertDialogAction>
@@ -467,7 +470,10 @@ function AdminManager() {
                                                 <Button variant="ghost" size="icon" disabled={isPending}><ShieldOff className="h-4 w-4 text-destructive" /></Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
-                                                <AlertDialogHeader><AlertDialogTitle>Revoke Admin?</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove admin privileges for {admin.email}?</AlertDialogDescription></AlertDialogHeader>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Revoke Admin?</AlertDialogTitle>
+                                                    <AlertDialogDescription>Are you sure you want to remove admin privileges for {admin.email}?</AlertDialogDescription>
+                                                </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
                                                     <AlertDialogAction onClick={() => removeAdmin(admin.uid)}>Revoke</AlertDialogAction>
