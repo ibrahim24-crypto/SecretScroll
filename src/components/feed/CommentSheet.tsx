@@ -89,13 +89,22 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (newComment.trim() !== '') {
+        handleAddComment();
+      }
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent side="bottom" className="h-[80dvh] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
           <SheetTitle>Comments ({comments.length})</SheetTitle>
-          <SheetDescription className="sr-only">A list of comments for the current post.</SheetDescription>
+          <SheetDescription>A list of comments for the current post.</SheetDescription>
         </SheetHeader>
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-6">
@@ -127,6 +136,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
               placeholder="Add a comment..."
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="min-h-[40px] max-h-24"
               rows={1}
             />
