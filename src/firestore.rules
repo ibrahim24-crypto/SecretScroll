@@ -30,7 +30,7 @@ service cloud.firestore {
       // Authenticated users can ONLY update upvotes and downvotes.
       allow update: if isAdmin() || (
         request.auth != null &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes'])
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
       );
       allow delete: if isAdmin();
     }
