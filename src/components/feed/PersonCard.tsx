@@ -148,11 +148,12 @@ export function PostCard({ post: initialPost }: PostCardProps) {
         <Carousel className="absolute inset-0 z-0" opts={{ loop: true }}>
           <CarouselContent>
             {approvedImages.map((url, index) => (
-              <CarouselItem key={index}>
+              <CarouselItem key={index} className="relative">
                 <Image
                   src={url}
                   alt={`${post.title} image ${index + 1}`}
                   fill
+                  sizes="100vw"
                   className="object-cover"
                   priority={index === 0}
                 />
