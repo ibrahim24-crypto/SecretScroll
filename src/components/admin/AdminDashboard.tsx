@@ -86,7 +86,7 @@ function PostManager({ settings }: { settings: AppSettings | null }) {
     }
 
     const filteredPosts = posts
-        .filter(post => post.title.toLowerCase().includes(filter.toLowerCase()) || post.content.toLowerCase().includes(filter.toLowerCase()))
+        .filter(post => post.title.toLowerCase().includes(filter.toLowerCase()) || (post.content && post.content.toLowerCase().includes(filter.toLowerCase())))
         .filter(post => showFlagged ? post.isFlagged : true);
 
     return (

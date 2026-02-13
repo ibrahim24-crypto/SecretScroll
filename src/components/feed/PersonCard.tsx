@@ -170,7 +170,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       ) : (
         <div className="absolute inset-0 z-0 bg-gradient-to-br from-primary via-background to-accent flex items-center justify-center p-16 text-primary-foreground/50">
             <div className="h-1/2 w-1/2">
-                {categoryIcons[post.category]}
+                {post.category && categoryIcons[post.category]}
             </div>
         </div>
       )}
@@ -182,7 +182,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       <div className="relative z-20 p-6 flex flex-col justify-end h-full">
          <div className="flex-grow"></div> {/* Spacer */}
         <CardHeader className="p-0 mb-4 flex-row items-center justify-between">
-            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+            {post.category && <Badge variant="secondary" className="capitalize">{post.category}</Badge>}
             <p className="text-sm text-neutral-300">{post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
         </CardHeader>
         <CardContent className="p-0 mb-4">
@@ -250,7 +250,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
        <CardHeader>
         <div className="flex items-center justify-between">
-            <Badge variant="secondary" className="capitalize">{post.category}</Badge>
+            {post.category && <Badge variant="secondary" className="capitalize">{post.category}</Badge>}
             <p className="text-xs text-muted-foreground">{post.createdAt ? new Date(post.createdAt.seconds * 1000).toLocaleDateString() : ''}</p>
         </div>
       </CardHeader>
@@ -280,7 +280,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       ) : (
         <div className="w-full aspect-[4/3] bg-muted flex items-center justify-center p-8 text-muted-foreground/50">
             <div className="h-1/2 w-1/2">
-             {categoryIcons[post.category]}
+             {post.category && categoryIcons[post.category]}
             </div>
         </div>
       )}

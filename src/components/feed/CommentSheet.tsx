@@ -29,9 +29,18 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const commentsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CommentType));
       setComments(commentsData);
+    }, (error) => {
+        console.error("Error fetching comments:", error);
+        // The error might be due to a missing index, which Firestore logs with a creation link.
+        toast({
+            title: 'Could not load comments',
+            description: 'There was an issue fetching the comments for this post. Check the console for details.',
+            variant: 'destructive',
+            duration: 9000
+        })
     });
     return () => unsubscribe();
-  }, [postId]);
+  }, [postId, toast]);
 
   const handleAddComment = () => {
     if (newComment.trim() === '') return;

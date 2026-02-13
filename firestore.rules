@@ -8,23 +8,31 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Check role in DB OR if email matches the hardcoded admin email.
+      return request.auth != null && 
+             (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 
+              request.auth.token.email == 'ibrahimezzine09@gmail.com');
     }
   
-    // Users can only read public profiles, but can write to their own. Admins can also update profiles.
+    // Users can only be created. No one can read other user docs directly for privacy.
+    // Admins can update roles.
     match /users/{userId} {
-      allow read: if true;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin();
     }
 
-    // Posts can be read by anyone and created by anyone.
-    // Only the author (if logged in) or an admin can update or delete a post.
+    // Admins can update/delete. Logged-in users can update vote counts.
     match /posts/{postId} {
       allow read: if true;
       allow create: if true;
-      allow update: if isOwner(resource.data.authorUid) || isAdmin();
-      allow delete: if isOwner(resource.data.authorUid) || isAdmin();
+      // Admins can update anything.
+      // Authenticated users can ONLY update upvotes and downvotes.
+      allow update: if isAdmin() || (
+        request.auth != null &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
+      );
+      allow delete: if isAdmin();
     }
     
     // Votes can be created, updated, or deleted by the user who owns them.
@@ -40,6 +48,11 @@ service cloud.firestore {
                     && request.resource.data.content.size() < 500;
       // Only the comment author or an admin can delete a comment.
       allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+
+    // Settings can only be read and written by admins.
+    match /settings/{settingId} {
+      allow read, write: if isAdmin();
     }
   }
 }
