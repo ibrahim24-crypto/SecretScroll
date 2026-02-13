@@ -21,8 +21,6 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { AppSettings, PostImage } from '@/lib/types';
 import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 
 
 const postSchema = z.object({
@@ -241,22 +239,45 @@ export default function CreatePostPage() {
                         </FormItem>
                     )} />
 
-                    <FormField control={form.control} name="eventDate" render={({ field }) => (
+                    <FormField
+                      control={form.control}
+                      name="eventDate"
+                      render={({ field }) => (
                         <FormItem className="flex flex-col">
-                            <FormLabel>Event Date (Optional)</FormLabel>
-                            <FormControl>
-                                <DatePicker
-                                    selected={field.value}
-                                    onChange={field.onChange}
-                                    placeholderText="Select a date"
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-                                    wrapperClassName="w-full"
-                                />
-                            </FormControl>
-                            <FormDescription>If your post is about an event, add the date.</FormDescription>
-                            <FormMessage />
+                          <FormLabel>Event Date (Optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              value={
+                                field.value instanceof Date
+                                  ? `${field.value.getFullYear()}-${String(
+                                      field.value.getMonth() + 1
+                                    ).padStart(2, '0')}-${String(
+                                      field.value.getDate()
+                                    ).padStart(2, '0')}`
+                                  : ''
+                              }
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  const [year, month, day] = e.target.value
+                                    .split('-')
+                                    .map(Number);
+                                  field.onChange(
+                                    new Date(year, month - 1, day)
+                                  );
+                                } else {
+                                  field.onChange(null);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            If your post is about an event, add the date.
+                          </FormDescription>
+                          <FormMessage />
                         </FormItem>
-                    )} />
+                      )}
+                    />
 
                     <FormField control={form.control} name="imageUrls" render={() => (
                       <FormItem>
