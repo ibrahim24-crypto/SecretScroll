@@ -6,9 +6,9 @@ import type { Post } from '@/lib/types';
 import { useAuth } from '@/hooks/useAuth';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle, Images } from 'lucide-react';
+import { ArrowUp, ArrowDown, Laugh, Sparkles, BookOpen, Lightbulb, MessageCircle, Images, MoreVertical, Edit, Trash2, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { doc, runTransaction, collection, where, getDocs, query } from 'firebase/firestore';
+import { doc, runTransaction, collection, where, getDocs, query, deleteDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -19,6 +19,9 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { CommentSheet } from './CommentSheet';
 import { getSocialPlatformIcon, getSocialLink, isSocialPlatform } from '@/lib/socials';
 import NextLink from 'next/link';
+import { useRouter } from 'next/navigation';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface PostCardProps {
   post: Post;
@@ -57,12 +60,36 @@ function CustomField({ field }: { field: { label: string, value: string } }) {
 export function PostCard({ post: initialPost }: PostCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [post, setPost] = useState(initialPost);
   const [isVoting, setIsVoting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   useEffect(() => {
     setPost(initialPost);
   }, [initialPost]);
+  
+  const isAuthor = user?.uid === post.authorUid;
+
+  const handleDelete = async () => {
+    if (!isAuthor) {
+        toast({ title: 'Permission Denied', variant: 'destructive' });
+        return;
+    }
+    setIsDeleting(true);
+    try {
+        await deleteDoc(doc(db, 'posts', post.id));
+        toast({ title: 'Post Deleted', description: 'Your post has been successfully removed.' });
+        // The real-time listener in Feed.tsx will handle removing the post from the UI.
+    } catch (error) {
+        console.error("Error deleting post:", error);
+        const permissionError = new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'delete' });
+        errorEmitter.emit('permission-error', permissionError);
+    } finally {
+        setIsDeleting(false);
+    }
+  };
+
 
   const handleVote = async (voteType: 'upvote' | 'downvote') => {
     if (!user) {
@@ -139,10 +166,52 @@ export function PostCard({ post: initialPost }: PostCardProps) {
 
   const approvedImages = post.images?.filter(img => img.status === 'approved').map(img => img.url) || [];
 
+  const authorActionsMenu = (
+    <div className="absolute top-2 right-2 z-30">
+        <AlertDialog>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/30 text-white hover:bg-black/50 hover:text-white md:bg-transparent md:text-inherit md:hover:bg-accent">
+                        <MoreVertical className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => router.push(`/post/${post.id}/edit`)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        <span>Edit</span>
+                    </DropdownMenuItem>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            <span>Delete</span>
+                        </DropdownMenuItem>
+                    </AlertDialogTrigger>
+                </DropdownMenuContent>
+            </DropdownMenu>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your post.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} disabled={isDeleting}>
+                        {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
+  );
+
   return (
     <>
     {/* Mobile: Full-screen Reel view */}
     <div id={post.id} className="md:hidden relative h-dvh w-screen snap-start flex flex-col justify-end text-white bg-black">
+      {isAuthor && authorActionsMenu}
       {/* Background Image/Carousel */}
       {approvedImages.length > 0 ? (
         <Carousel className="absolute inset-0 z-0" opts={{ loop: true }}>
@@ -247,7 +316,8 @@ export function PostCard({ post: initialPost }: PostCardProps) {
 
 
     {/* Desktop: Original Card view */}
-    <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col">
+    <Card id={`${post.id}-desktop`} className="hidden md:flex shadow-lg transform transition-transform duration-300 hover:shadow-xl hover:-translate-y-1 flex-col relative">
+       {isAuthor && <div className="absolute top-2 right-2 z-10">{authorActionsMenu}</div>}
        <CardHeader>
         <div className="flex items-center justify-between">
             {post.category && <Badge variant="secondary" className="capitalize">{post.category}</Badge>}

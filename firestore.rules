@@ -36,13 +36,20 @@ service cloud.firestore {
       allow read: if true;
       allow create: if true;
       allow update: if (
+        // Any authenticated user can vote or update comment count
         request.auth != null &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
       ) || (
+        // Admins can approve images
         isAdmin() && hasPermission('approve_pictures') &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['images', 'hasPendingImages'])
-      ) || isSuperAdmin();
-      allow delete: if isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
+      ) || (
+        // The author can edit their own post content
+        isOwner(resource.data.authorUid) &&
+        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt'])
+      )
+      || isSuperAdmin();
+      allow delete: if isOwner(resource.data.authorUid) || isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
     }
     
     match /votes/{voteId} {
