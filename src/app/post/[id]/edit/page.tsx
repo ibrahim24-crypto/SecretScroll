@@ -201,8 +201,12 @@ export default function EditPostPage() {
         updatedAt: serverTimestamp(),
       };
       
+      const cleanUpdatedData = Object.fromEntries(
+        Object.entries(updatedData).filter(([_, v]) => v !== undefined)
+      );
+      
       try {
-        await updateDoc(postRef, updatedData);
+        await updateDoc(postRef, cleanUpdatedData);
         toast({ title: 'Post Updated!', description: 'Your changes have been saved.' });
         router.push(`/post/${post.id}`);
       } catch (serverError) {
@@ -210,7 +214,7 @@ export default function EditPostPage() {
         const permissionError = new FirestorePermissionError({
           path: postRef.path,
           operation: 'update',
-          requestResourceData: updatedData,
+          requestResourceData: cleanUpdatedData,
         });
         errorEmitter.emit('permission-error', permissionError);
       }

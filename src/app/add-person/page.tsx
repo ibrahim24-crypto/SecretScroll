@@ -167,9 +167,13 @@ export default function CreatePostPage() {
         updatedAt: serverTimestamp(),
       };
       
+      const cleanPostData = Object.fromEntries(
+        Object.entries(postData).filter(([_, v]) => v !== undefined)
+      );
+
       const postCollectionRef = collection(db, 'posts');
 
-      addDoc(postCollectionRef, postData)
+      addDoc(postCollectionRef, cleanPostData)
         .then(() => {
           toast({ title: 'Post Published!', description: `Your post is now live.` });
           router.push('/');
@@ -178,7 +182,7 @@ export default function CreatePostPage() {
           const permissionError = new FirestorePermissionError({
             path: postCollectionRef.path,
             operation: 'create',
-            requestResourceData: postData,
+            requestResourceData: cleanPostData,
           });
           errorEmitter.emit('permission-error', permissionError);
         });
