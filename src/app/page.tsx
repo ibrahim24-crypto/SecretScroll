@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { AnonymousIcon } from '@/components/icons/AnonymousIcon';
+import Link from 'next/link';
 
 function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
   const { toast } = useToast();
@@ -117,6 +118,16 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
               </Button>
             </div>
           </CardContent>
+          <CardFooter className="flex-col items-center justify-center gap-2 pt-4 border-t">
+            <div className="flex justify-center gap-4 text-xs text-muted-foreground">
+                <Link href="/about" className="hover:text-primary transition-colors">About</Link>
+                <Link href="/terms" className="hover:text-primary transition-colors">Terms of Use</Link>
+                <Link href="/copyright" className="hover:text-primary transition-colors">Copyright</Link>
+            </div>
+            <p className="text-xs text-muted-foreground">
+                © 2024 SecretReels. All Rights Reserved.
+            </p>
+          </CardFooter>
         </Card>
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
