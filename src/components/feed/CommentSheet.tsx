@@ -53,7 +53,10 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
   }, [postId, toast]);
 
   const handleAddComment = () => {
-    if (newComment.trim() === '') return;
+    if (newComment.trim() === '' || !user) {
+        if (!user) toast({ title: 'Please sign in to comment.', variant: 'destructive' });
+        return;
+    }
     
     startTransition(async () => {
         const postRef = doc(db, 'posts', postId);
@@ -62,8 +65,8 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
             postId,
             content: newComment,
             createdAt: serverTimestamp(),
-            userId: user ? user.uid : 'anonymous',
-            authorDisplayName: user ? user.displayName : 'Anonymous',
+            userId: user.uid,
+            authorDisplayName: user.isAnonymous ? 'Anonymous' : (user.displayName || 'User'),
         };
 
         try {
@@ -198,8 +201,9 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
               onKeyDown={handleKeyDown}
               className="min-h-[40px] max-h-24"
               rows={1}
+              disabled={!user}
             />
-            <Button onClick={handleAddComment} disabled={isPending || newComment.trim() === ''} size="icon">
+            <Button onClick={handleAddComment} disabled={isPending || newComment.trim() === '' || !user} size="icon">
               {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>

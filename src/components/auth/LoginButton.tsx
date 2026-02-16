@@ -32,9 +32,9 @@ export function LoginButton() {
   };
 
   return (
-    <Button variant="outline" size="icon" onClick={handleLogin} disabled={loading}>
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-      <span className="sr-only">Sign In with Google</span>
+    <Button onClick={handleLogin} disabled={loading}>
+      {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
+      Sign In with Google
     </Button>
   );
 }
