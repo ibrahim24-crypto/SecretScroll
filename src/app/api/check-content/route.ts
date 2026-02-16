@@ -10,9 +10,8 @@ export async function POST(request: Request) {
 
   if (!API_KEY) {
     console.error('Bad words API key is not configured in .env file.');
-    // Fail open: If the check is not configured, we allow the post but log an error.
-    // This prevents blocking all posts if the key is missing or invalid.
-    return NextResponse.json({ flagged: false });
+    // Fail open: If the check is not configured, we don't flag.
+    return NextResponse.json({ flagged: false, badWords: [] });
   }
 
   if (!text) {
@@ -29,23 +28,20 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-        // This can happen for various reasons, like an invalid API key or service downtime.
         console.error('Bad words API request failed:', response.status, response.statusText);
-        // Fail open if the API itself fails, but flag the post for manual review.
-        return NextResponse.json({ flagged: true });
+        // API failed. We will flag for review but not block the user.
+        return NextResponse.json({ flagged: true, badWords: [] });
     }
 
     const result = await response.json();
     
-    // The API response contains a `bad_words_total` field.
-    // If it's greater than 0, we consider the content flagged.
     const flagged = result.bad_words_total > 0;
+    const badWords = result.bad_words_list || [];
 
-    return NextResponse.json({ flagged });
+    return NextResponse.json({ flagged, badWords });
   } catch (error) {
     console.error('Error calling bad words API:', error);
-    // If the request to the API fails entirely (e.g., network issue),
-    // we flag the post for manual review as a safety measure.
-    return NextResponse.json({ flagged: true });
+    // API request failed. We will flag for review but not block the user.
+    return NextResponse.json({ flagged: true, badWords: [] });
   }
 }

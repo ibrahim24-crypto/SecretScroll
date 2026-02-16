@@ -14,7 +14,6 @@ export const PERMISSIONS = {
   approve_pictures: 'Approve or reject user-submitted pictures.',
   delete_posts: 'Delete any post from the feed.',
   delete_comments: 'Delete any comment from any post.',
-  manage_forbidden_words: 'Add, remove, or edit forbidden words.',
   view_users: 'View the list of all registered users.',
   manage_admins: 'Grant or revoke admin privileges and their permissions.',
   delete_users: 'Delete any user account from the application.',

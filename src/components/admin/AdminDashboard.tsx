@@ -35,7 +35,6 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'approve_pictures', label: 'Picture Approval', description: 'Can approve or reject user-submitted pictures.' },
     { id: 'delete_posts', label: 'Post Deletion', description: 'Can delete any post from the feed.' },
     { id: 'delete_comments', label: 'Comment Deletion', description: 'Can delete any comment from any post.' },
-    { id: 'manage_forbidden_words', label: 'Forbidden Words', description: 'Can manage the list of forbidden words.' },
     { id: 'view_users', label: 'View Users', description: 'Can view the list of all registered users.' },
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
     { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },

@@ -131,11 +131,17 @@ export default function CreatePostPage() {
           });
 
           if (checkRes.ok) {
-            const { flagged } = await checkRes.json();
-            isFlagged = flagged;
-            if (flagged) {
-              toast({ title: 'Content Flagged', description: 'This post has been flagged for review.', variant: 'default' });
+            const { flagged, badWords } = await checkRes.json();
+            if (flagged && badWords && badWords.length > 0) {
+                toast({
+                    variant: "destructive",
+                    title: "Inappropriate Content Detected",
+                    description: `Please remove the following word(s) before publishing: ${badWords.join(", ")}`,
+                    duration: 9000,
+                });
+                return; // Block submission
             }
+            isFlagged = flagged;
           } else {
             isFlagged = true;
             console.error("Content check failed, flagging post for review.");
