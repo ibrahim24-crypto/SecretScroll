@@ -38,6 +38,7 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'manage_forbidden_words', label: 'Forbidden Words', description: 'Can manage the list of forbidden words.' },
     { id: 'view_users', label: 'View Users', description: 'Can view the list of all registered users.' },
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
+    { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },
 ];
 
 const permissionsSchema = z.object({
@@ -368,7 +369,10 @@ function ImageApprovalQueue() {
 function UserManager() {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deletingUser, setDeletingUser] = useState<string | null>(null);
     const { toast } = useToast();
+    const { user: currentUser, userProfile } = useAuth();
+
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -395,6 +399,34 @@ function UserManager() {
     useEffect(() => {
         fetchUsers();
     }, [fetchUsers]);
+    
+    const handleDeleteUser = (userToDelete: UserProfile) => {
+        if (!userProfile?.permissions?.delete_users) {
+            toast({ title: 'Permission Denied', description: 'You do not have permission to delete users.', variant: 'destructive' });
+            return;
+        }
+        if (userToDelete.uid === currentUser?.uid) {
+            toast({ title: "Cannot delete yourself", variant: "destructive" });
+            return;
+        }
+
+        setDeletingUser(userToDelete.uid);
+        const userRef = doc(db, 'users', userToDelete.uid);
+        
+        deleteDoc(userRef)
+          .then(() => {
+            setUsers(prev => prev.filter(u => u.uid !== userToDelete.uid));
+            toast({ title: 'Success', description: `User ${userToDelete.displayName || userToDelete.email} has been deleted.` });
+          })
+          .catch((error) => {
+            const permissionError = new FirestorePermissionError({ path: userRef.path, operation: 'delete' });
+            errorEmitter.emit('permission-error', permissionError);
+          })
+          .finally(() => {
+              setDeletingUser(null);
+          });
+    }
+
 
     if (loading) {
         return <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">{[...Array(6)].map((_, i) => <Skeleton key={i} className="h-28 w-full" />)}</div>
@@ -415,10 +447,31 @@ function UserManager() {
                         </div>
                          {user.role === 'admin' && <Badge variant="secondary">Admin</Badge>}
                     </CardHeader>
-                    <CardFooter className="p-4 pt-0">
+                    <CardFooter className="p-4 pt-0 flex justify-between items-center">
                          <p className="text-xs text-muted-foreground">
                             Joined: {user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
                         </p>
+                        {userProfile?.permissions?.delete_users && currentUser?.uid !== user.uid && (
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" size="icon" className="h-8 w-8" disabled={deletingUser === user.uid}>
+                                        {deletingUser === user.uid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This will permanently delete the user account. This action cannot be undone.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteUser(user)}>Delete</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+                        )}
                     </CardFooter>
                 </Card>
             ))}

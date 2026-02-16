@@ -30,6 +30,7 @@ service cloud.firestore {
       allow list: if isAdmin() && hasPermission('view_users');
       allow create: if request.resource.data.uid == request.auth.uid;
       allow update: if isSuperAdmin() || (isAdmin() && hasPermission('manage_admins'));
+      allow delete: if (isSuperAdmin() || (isAdmin() && hasPermission('delete_users'))) && request.auth.uid != userId;
     }
 
     match /posts/{postId} {
