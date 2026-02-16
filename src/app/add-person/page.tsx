@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -58,26 +58,10 @@ export default function CreatePostPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [forbiddenWords, setForbiddenWords] = useState<string[]>([]);
 
   const [socialDialogOpen, setSocialDialogOpen] = useState(false);
   const [currentSocial, setCurrentSocial] = useState<{ key: string; label: string; icon: any; placeholder: string; } | null>(null);
   const [socialValue, setSocialValue] = useState('');
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-        try {
-            const settingsRef = doc(db, 'settings', 'config');
-            const docSnap = await getDoc(settingsRef);
-            if(docSnap.exists()) {
-                setForbiddenWords(docSnap.data().forbiddenWords || []);
-            }
-        } catch (error) {
-            console.error("Could not fetch settings", error);
-        }
-    };
-    fetchSettings();
-  }, []);
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -169,13 +153,33 @@ export default function CreatePostPage() {
   };
 
   const onSubmit = (data: PostFormValues) => {
-    startTransition(() => {
-        const contentToCheck = `${data.title} ${data.content || ''}`.toLowerCase();
-        const flagged = forbiddenWords.some(word => contentToCheck.includes(word.toLowerCase()));
-        if(flagged) {
-            toast({ title: 'Post contains forbidden words', description: 'Please revise your post content.', variant: 'destructive' });
-            return;
+    startTransition(async () => {
+      let isFlagged = false;
+      const contentToCheck = `${data.title} ${data.content || ''}`;
+
+      if (contentToCheck.trim()) {
+        try {
+          const checkRes = await fetch('/api/check-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: contentToCheck }),
+          });
+
+          if (checkRes.ok) {
+            const { flagged } = await checkRes.json();
+            isFlagged = flagged;
+            if (flagged) {
+              toast({ title: 'Content Flagged', description: 'This post has been flagged for review.', variant: 'default' });
+            }
+          } else {
+            isFlagged = true;
+            console.error("Content check failed, flagging post for review.");
+          }
+        } catch (error) {
+          isFlagged = true;
+          console.error("Error checking content, flagging post for review:", error);
         }
+      }
 
       const images: PostImage[] | null = data.imageUrls && data.imageUrls.length > 0 
         ? data.imageUrls.map(url => ({ url, status: 'pending' as const })) 
@@ -193,7 +197,7 @@ export default function CreatePostPage() {
         hasPendingImages: hasPendingImages,
         authorUid: user ? user.uid : "anonymous_guest",
         visibility: 'public' as const,
-        isFlagged: false, 
+        isFlagged: isFlagged, 
         upvotes: 0,
         downvotes: 0,
         reports: 0,

@@ -176,6 +176,32 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
+      let isFlagged = post.isFlagged;
+      const contentToCheck = `${data.title} ${data.content || ''}`;
+
+      if (contentToCheck.trim()) {
+        try {
+          const checkRes = await fetch('/api/check-content', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: contentToCheck }),
+          });
+
+          if (checkRes.ok) {
+            const { flagged } = await checkRes.json();
+            isFlagged = flagged;
+            if (flagged && !post.isFlagged) {
+              toast({ title: 'Content Flagged', description: 'This post has been flagged for review.', variant: 'default' });
+            }
+          } else {
+            isFlagged = true;
+          }
+        } catch (error) {
+          isFlagged = true;
+          console.error("Error checking content, flagging post for review:", error);
+        }
+      }
+
       const postRef = doc(db, 'posts', post.id);
 
       // Determine new images vs existing images
@@ -198,6 +224,7 @@ export default function EditPostPage() {
         customFields: data.customFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
+        isFlagged: isFlagged,
         updatedAt: serverTimestamp(),
       };
       

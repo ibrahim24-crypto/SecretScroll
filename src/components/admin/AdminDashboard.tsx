@@ -125,7 +125,7 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
 
 
 // #region Post Manager
-function PostManager({ settings }: { settings: AppSettings | null }) {
+function PostManager() {
     const [posts, setPosts] = useState<Post[]>([]);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Record<string, boolean>>({});
@@ -140,16 +140,7 @@ function PostManager({ settings }: { settings: AppSettings | null }) {
             const postsRef = collection(db, 'posts');
             const q = query(postsRef, orderBy('createdAt', 'desc'));
             const querySnapshot = await getDocs(q);
-            let postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
-            
-            if (settings?.forbiddenWords) {
-                postsData = postsData.map(post => {
-                    const content = `${post.title} ${post.content}`.toLowerCase();
-                    const isFlagged = settings.forbiddenWords.some(word => content.includes(word.toLowerCase()));
-                    return { ...post, isFlagged };
-                });
-            }
-            
+            const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
         } catch (error) {
            console.error("Error fetching posts:", error);
@@ -157,7 +148,7 @@ function PostManager({ settings }: { settings: AppSettings | null }) {
         } finally {
           setLoading(false);
         }
-    }, [toast, settings]);
+    }, [toast]);
 
     useEffect(() => {
       fetchPosts();
@@ -612,108 +603,13 @@ function AdminManager() {
 }
 // #endregion
 
-// #region Settings Manager
-function SettingsManager({ settings, onUpdate }: { settings: AppSettings | null, onUpdate: () => void }) {
-    const { toast } = useToast();
-    const [newWord, setNewWord] = useState('');
-    const [isPending, startTransition] = useTransition();
-
-    const handleAddWord = () => {
-        if (!newWord.trim()) return;
-        startTransition(async () => {
-            const currentWords = settings?.forbiddenWords || [];
-            if(currentWords.includes(newWord.toLowerCase())) {
-                toast({title: "Word already exists.", variant: 'default' });
-                return;
-            }
-            const newWords = [...currentWords, newWord.trim().toLowerCase()];
-            try {
-                await setDoc(doc(db, 'settings', 'config'), { forbiddenWords: newWords }, { merge: true });
-                toast({ title: "Success", description: "Forbidden word list updated." });
-                setNewWord('');
-                onUpdate();
-            } catch (error) {
-                 const permissionError = new FirestorePermissionError({ path: `settings/config`, operation: 'update' });
-                 errorEmitter.emit('permission-error', permissionError);
-            }
-        });
-    }
-
-    const handleRemoveWord = (wordToRemove: string) => {
-        startTransition(async () => {
-            const newWords = settings?.forbiddenWords.filter(w => w !== wordToRemove) || [];
-            try {
-                await setDoc(doc(db, 'settings', 'config'), { forbiddenWords: newWords }, { merge: true });
-                toast({ title: "Success", description: `"${wordToRemove}" removed from list.` });
-                onUpdate();
-            } catch (error) {
-                 const permissionError = new FirestorePermissionError({ path: `settings/config`, operation: 'update' });
-                 errorEmitter.emit('permission-error', permissionError);
-            }
-        });
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Forbidden Words</CardTitle>
-                <CardDescription>Posts containing these words will be flagged for review. Words are not case-sensitive.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex items-center gap-2 mb-4">
-                    <Input value={newWord} onChange={e => setNewWord(e.target.value)} placeholder="Add a word..." />
-                    <Button onClick={handleAddWord} disabled={isPending}>{isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add'}</Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {!settings && <Skeleton className="h-20 w-full" />}
-                    {settings?.forbiddenWords.length === 0 && <p className="text-sm text-muted-foreground">No forbidden words yet.</p>}
-                    {settings?.forbiddenWords.map(word => (
-                        <Badge key={word} variant="secondary" className="text-base font-normal">
-                            {word}
-                            <button onClick={() => handleRemoveWord(word)} className="ml-2 rounded-full hover:bg-destructive/20 p-0.5"><X className="h-3 w-3" /></button>
-                        </Badge>
-                    ))}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-// #endregion
-
-
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [loadingSettings, setLoadingSettings] = useState(true);
 
   const permissions = userProfile?.permissions;
   const canViewDashboard = permissions && Object.values(permissions).some(v => v === true);
-
-  const fetchSettings = useCallback(async () => {
-    setLoadingSettings(true);
-    try {
-        const settingsRef = doc(db, 'settings', 'config');
-        const docSnap = await getDoc(settingsRef);
-        if (docSnap.exists()) {
-            setSettings(docSnap.data() as AppSettings);
-        } else {
-            await setDoc(settingsRef, { forbiddenWords: [] });
-            setSettings({ forbiddenWords: [] });
-        }
-    } catch (e) {
-        console.error("Failed to fetch or create settings", e);
-    } finally {
-        setLoadingSettings(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!authLoading && userProfile?.role === 'admin') {
-      fetchSettings();
-    }
-  }, [userProfile, authLoading, fetchSettings, toast]);
 
   useEffect(() => {
     if (!authLoading && (userProfile?.role !== 'admin' || !canViewDashboard)) {
@@ -722,7 +618,7 @@ export function AdminDashboard() {
     }
   }, [userProfile, authLoading, router, toast, canViewDashboard]);
 
-  if (authLoading || loadingSettings || !canViewDashboard) {
+  if (authLoading || !canViewDashboard) {
     return <div className="py-8"><Skeleton className="h-96 w-full" /></div>;
   }
   
@@ -734,11 +630,10 @@ export function AdminDashboard() {
           {permissions?.approve_pictures && <TabsTrigger value="images">Image Approval</TabsTrigger>}
           {permissions?.view_users && <TabsTrigger value="users">Manage Users</TabsTrigger>}
           {permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
-          {permissions?.manage_forbidden_words && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
       </div>
       <TabsContent value="posts" className="mt-4">
-        <PostManager settings={settings} />
+        <PostManager />
       </TabsContent>
        {permissions?.approve_pictures && (
          <TabsContent value="images" className="mt-4">
@@ -753,11 +648,6 @@ export function AdminDashboard() {
        {permissions?.manage_admins && (
         <TabsContent value="admins" className="mt-4">
             <AdminManager />
-        </TabsContent>
-       )}
-       {permissions?.manage_forbidden_words && (
-        <TabsContent value="settings" className="mt-4">
-            <SettingsManager settings={settings} onUpdate={fetchSettings} />
         </TabsContent>
        )}
     </Tabs>

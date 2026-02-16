@@ -47,7 +47,7 @@ service cloud.firestore {
       ) || (
         // The author can edit their own post content
         isOwner(resource.data.authorUid) &&
-        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt'])
+        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
       )
       || isSuperAdmin();
       allow delete: if isOwner(resource.data.authorUid) || isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
