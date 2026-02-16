@@ -131,7 +131,6 @@ export default function CreatePostPage() {
 
   const onSubmit = (data: PostFormValues) => {
     startTransition(async () => {
-      let isFlagged = false;
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
       if (contentToCheck.trim()) {
@@ -142,30 +141,49 @@ export default function CreatePostPage() {
             body: JSON.stringify({ text: contentToCheck }),
           });
 
-          if (checkRes.ok) {
-            const { flagged, badWords } = await checkRes.json();
-            if (flagged && badWords && badWords.length > 0) {
-                toast({
-                    variant: "destructive",
-                    title: "Inappropriate Content Detected",
-                    description: `Please remove the following word(s) before publishing: ${badWords.join(", ")}`,
-                    duration: 9000,
-                });
-                return; // Block submission
+          if (!checkRes.ok) {
+            toast({
+              variant: "destructive",
+              title: "Could not verify content",
+              description: "The content moderation service is currently unavailable. Please try again later.",
+              duration: 9000,
+            });
+            return; // Block submission
+          }
+
+          const { flagged, badWords } = await checkRes.json();
+          if (flagged) {
+            if (badWords && badWords.length > 0) {
+              toast({
+                variant: "destructive",
+                title: "Inappropriate Content Detected",
+                description: `Please remove the following word(s) before publishing: ${badWords.join(", ")}`,
+                duration: 9000,
+              });
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Inappropriate Content Detected",
+                description: "Your post contains content that violates our guidelines. Please review and revise.",
+                duration: 9000,
+              });
             }
-            isFlagged = flagged;
-          } else {
-            isFlagged = true;
-            console.error("Content check failed, flagging post for review.");
+            return; // Block submission
           }
         } catch (error) {
-          isFlagged = true;
-          console.error("Error checking content, flagging post for review:", error);
+          console.error("Error checking content:", error);
+          toast({
+            variant: "destructive",
+            title: "Could not verify content",
+            description: "There was a problem connecting to the content moderation service. Please check your network and try again.",
+            duration: 9000,
+          });
+          return; // Block submission
         }
       }
 
-      const images: PostImage[] | null = data.imageUrls && data.imageUrls.length > 0 
-        ? data.imageUrls.map(url => ({ url, status: 'pending' as const })) 
+      const images: PostImage[] | null = data.imageUrls && data.imageUrls.length > 0
+        ? data.imageUrls.map(url => ({ url, status: 'pending' as const }))
         : null;
 
       const hasPendingImages = !!images;
@@ -180,7 +198,7 @@ export default function CreatePostPage() {
         hasPendingImages: hasPendingImages,
         authorUid: user ? user.uid : "anonymous_guest",
         visibility: 'public' as const,
-        isFlagged: isFlagged, 
+        isFlagged: false, // Content is clean if we reach here
         upvotes: 0,
         downvotes: 0,
         reports: 0,
@@ -189,7 +207,7 @@ export default function CreatePostPage() {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
-      
+
       const cleanPostData = Object.fromEntries(
         Object.entries(postData).filter(([_, v]) => v !== undefined && v !== null)
       );

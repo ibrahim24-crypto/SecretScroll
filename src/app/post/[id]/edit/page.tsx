@@ -176,7 +176,6 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
-      let isFlagged = post.isFlagged;
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
       if (contentToCheck.trim()) {
@@ -187,36 +186,54 @@ export default function EditPostPage() {
             body: JSON.stringify({ text: contentToCheck }),
           });
 
-          if (checkRes.ok) {
-            const { flagged, badWords } = await checkRes.json();
-            if (flagged && badWords && badWords.length > 0) {
-                toast({
-                    variant: "destructive",
-                    title: "Inappropriate Content Detected",
-                    description: `Please remove the following word(s) before saving: ${badWords.join(", ")}`,
-                    duration: 9000,
-                });
-                return; // Block submission
+          if (!checkRes.ok) {
+            toast({
+              variant: "destructive",
+              title: "Could not verify content",
+              description: "The content moderation service is currently unavailable. Please try again later.",
+              duration: 9000,
+            });
+            return; // Block submission
+          }
+
+          const { flagged, badWords } = await checkRes.json();
+          if (flagged) {
+            if (badWords && badWords.length > 0) {
+              toast({
+                variant: "destructive",
+                title: "Inappropriate Content Detected",
+                description: `Please remove the following word(s) before saving: ${badWords.join(", ")}`,
+                duration: 9000,
+              });
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Inappropriate Content Detected",
+                description: "Your post contains content that violates our guidelines. Please review and revise.",
+                duration: 9000,
+              });
             }
-            isFlagged = flagged;
-          } else {
-            isFlagged = true;
+            return; // Block submission
           }
         } catch (error) {
-          isFlagged = true;
-          console.error("Error checking content, flagging post for review:", error);
+          console.error("Error checking content:", error);
+          toast({
+            variant: "destructive",
+            title: "Could not verify content",
+            description: "There was a problem connecting to the content moderation service. Please check your network and try again.",
+            duration: 9000,
+          });
+          return; // Block submission
         }
       }
-
+      
       const postRef = doc(db, 'posts', post.id);
 
-      // Determine new images vs existing images
       const existingImages = post.images || [];
       const currentImageUrls = data.imageUrls || [];
 
       const newImages: PostImage[] = currentImageUrls.map(url => {
           const existing = existingImages.find(img => img.url === url);
-          // If image already exists, keep its status. If it's new, set to 'pending'.
           return existing ? existing : { url, status: 'pending' as const };
       });
 
@@ -230,7 +247,7 @@ export default function EditPostPage() {
         customFields: data.customFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
-        isFlagged: isFlagged,
+        isFlagged: false, // Content is clean if we reach here
         updatedAt: serverTimestamp(),
       };
       
