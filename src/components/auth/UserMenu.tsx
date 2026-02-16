@@ -11,11 +11,15 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LayoutDashboard, LogOut, User as UserIcon, Link2 } from 'lucide-react';
+import { LayoutDashboard, LogOut, User as UserIcon, Link2, Info, FileText, Copyright } from 'lucide-react';
 
 export function UserMenu() {
   const { user, userProfile } = useAuth();
@@ -88,6 +92,36 @@ export function UserMenu() {
             </Link>
           </DropdownMenuItem>
         )}
+        
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Info className="mr-2 h-4 w-4" />
+            <span>Info & Legal</span>
+          </DropdownMenuSubTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuSubContent>
+              <DropdownMenuItem asChild>
+                <Link href="/about">
+                  <Info className="mr-2 h-4 w-4" />
+                  <span>About</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/terms">
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>Terms of Use</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/copyright">
+                  <Copyright className="mr-2 h-4 w-4" />
+                  <span>Copyright</span>
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuSubContent>
+          </DropdownMenuPortal>
+        </DropdownMenuSub>
+
         {/*
         {isAnonymousUser && (
           <DropdownMenuItem onSelect={handleLinkAccount}>
@@ -96,6 +130,7 @@ export function UserMenu() {
           </DropdownMenuItem>
         )}
         */}
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
           <span>Sign out</span>
