@@ -1,8 +1,9 @@
+
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
@@ -13,17 +14,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, X, ArrowLeft, Instagram, Facebook, Github, Link as LinkIcon } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Loader2, Plus, X, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import type { PostImage } from '@/lib/types';
-import { getSocialPlatformIcon } from '@/lib/socials';
-import { WhatsappIcon } from '@/components/icons/WhatsappIcon';
-import { XIcon } from '@/components/icons/XIcon';
+import { getSocialPlatformIcon, isSocialPlatform } from '@/lib/socials';
+import { cn } from '@/lib/utils';
 
 
 const postSchema = z.object({
@@ -41,16 +40,6 @@ const postSchema = z.object({
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
-const socialButtons = [
-    { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'username' },
-    { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'username or profile ID' },
-    { key: 'twitter', label: 'X / Twitter', icon: XIcon, placeholder: 'username' },
-    { key: 'whatsapp', label: 'WhatsApp', icon: WhatsappIcon, placeholder: 'number with country code' },
-    { key: 'github', label: 'GitHub', icon: Github, placeholder: 'username' },
-    { key: 'website', label: 'Website', icon: LinkIcon, placeholder: 'https://example.com' },
-];
-
-
 export default function CreatePostPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -58,10 +47,6 @@ export default function CreatePostPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
-
-  const [socialDialogOpen, setSocialDialogOpen] = useState(false);
-  const [currentSocial, setCurrentSocial] = useState<{ key: string; label: string; icon: any; placeholder: string; } | null>(null);
-  const [socialValue, setSocialValue] = useState('');
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -77,28 +62,8 @@ export default function CreatePostPage() {
     control: form.control,
     name: "customFields"
   });
-
-  const handleOpenSocialDialog = (social: typeof socialButtons[number]) => {
-    setCurrentSocial(social);
-    setSocialValue('');
-    setSocialDialogOpen(true);
-  };
-
-  const handleSaveSocial = () => {
-    if (currentSocial && socialValue.trim()) {
-        const exists = fields.some(field => field.label.toLowerCase() === currentSocial.label.toLowerCase());
-        if(exists){
-             toast({ title: 'Already added', description: `You have already added a link for ${currentSocial.label}.` });
-             setSocialDialogOpen(false);
-             return;
-        }
-        append({ label: currentSocial.label, value: socialValue.trim() });
-        setSocialDialogOpen(false);
-        setCurrentSocial(null);
-    } else {
-        toast({ title: 'Field is empty', description: 'Please enter a value to save.', variant: 'destructive' });
-    }
-  };
+  
+  const watchedCustomFields = form.watch('customFields');
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -330,65 +295,61 @@ export default function CreatePostPage() {
                     )} />
                     
                     <div className="space-y-4 rounded-lg border p-4">
-                        <FormLabel className="text-base">Social Links (Optional)</FormLabel>
-                        <FormDescription>Add links to social media profiles or websites.</FormDescription>
+                        <FormLabel className="text-base">Custom Details</FormLabel>
+                        <FormDescription>Add other details like social media links or other facts.</FormDescription>
+                        <div className="space-y-4">
+                            {fields.map((field, index) => (
+                                <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
+                                    <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
+                                        <FormItem className="flex-1">
+                                            <FormLabel className="text-xs">Label</FormLabel>
+                                            <FormControl><Input placeholder="e.g., Instagram, Nickname" {...controllerField} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )} />
 
-                        {/* Display added links */}
-                        <div className="space-y-2">
-                            {fields.map((field, index) => {
-                                const Icon = getSocialPlatformIcon(field.label);
-                                return (
-                                    <div key={field.id} className="flex items-center justify-between gap-2 p-2 border rounded-md bg-secondary/30">
-                                        <div className="flex items-center gap-3">
-                                            <Icon className="h-5 w-5 text-muted-foreground" />
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-semibold">{field.label}</span>
-                                                <span className="text-sm text-muted-foreground break-all">{field.value}</span>
-                                            </div>
-                                        </div>
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><X className="h-4 w-4" /></Button>
-                                    </div>
-                                )
-                            })}
-                        </div>
+                                    <Controller
+                                        control={form.control}
+                                        name={`customFields.${index}.value`}
+                                        render={({ field: controllerField }) => {
+                                            const currentLabel = watchedCustomFields?.[index]?.label || '';
+                                            const isSocial = isSocialPlatform(currentLabel);
+                                            const Icon = getSocialPlatformIcon(currentLabel);
 
-                        {/* Buttons to add new links */}
-                        <div className="flex flex-wrap gap-2 pt-2">
-                            {socialButtons.map((social) => (
-                                <Button key={social.key} type="button" variant="outline" size="sm" onClick={() => handleOpenSocialDialog(social)}>
-                                    <social.icon className="mr-2 h-4 w-4" />
-                                    Add {social.label}
-                                </Button>
+                                            return (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel className="text-xs">Value</FormLabel>
+                                                    <div className="relative flex items-center">
+                                                        {isSocial && Icon && (
+                                                            <div className="absolute left-3">
+                                                                <Icon className="h-4 w-4 text-muted-foreground" />
+                                                            </div>
+                                                        )}
+                                                        <FormControl>
+                                                          <Input
+                                                            placeholder={isSocial ? 'username' : 'e.g., Johnny'}
+                                                            className={cn(isSocial && 'pl-10')}
+                                                            {...controllerField}
+                                                          />
+                                                        </FormControl>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            );
+                                        }}
+                                    />
+                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0"><X className="h-4 w-4" /></Button>
+                                </div>
                             ))}
                         </div>
+                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
                     </div>
                   </form>
                 </Form>
             </div>
         </main>
-        <Dialog open={socialDialogOpen} onOpenChange={setSocialDialogOpen}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Add {currentSocial?.label}</DialogTitle>
-                    <DialogDescription>
-                        Enter the {currentSocial?.label} {currentSocial?.key === 'website' ? 'URL' : 'username or ID'} below.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                    <Input
-                        id="social-value"
-                        value={socialValue}
-                        onChange={(e) => setSocialValue(e.target.value)}
-                        placeholder={currentSocial?.placeholder}
-                        autoFocus
-                    />
-                </div>
-                <DialogFooter>
-                    <Button variant="ghost" onClick={() => setSocialDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleSaveSocial}>Save Link</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
     </div>
   );
 }
+
+    
