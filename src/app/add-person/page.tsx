@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -14,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, X, ArrowLeft, Instagram, Facebook, Github, MessageSquare, Link as LinkIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -23,6 +22,8 @@ import Link from 'next/link';
 import type { PostImage } from '@/lib/types';
 import { getSocialPlatformIcon, isSocialPlatform } from '@/lib/socials';
 import { cn } from '@/lib/utils';
+import { WhatsappIcon } from '@/components/icons/WhatsappIcon';
+import { XIcon } from '@/components/icons/XIcon';
 
 
 const postSchema = z.object({
@@ -39,6 +40,17 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
+
+const socialButtons = [
+    { label: 'Instagram', icon: Instagram },
+    { label: 'X / Twitter', icon: XIcon },
+    { label: 'Facebook', icon: Facebook },
+    { label: 'WhatsApp', icon: WhatsappIcon },
+    { label: 'GitHub', icon: Github },
+    { label: 'Discord', icon: MessageSquare },
+    { label: 'Website', icon: LinkIcon }
+];
+
 
 export default function CreatePostPage() {
   const { user } = useAuth();
@@ -303,6 +315,21 @@ export default function CreatePostPage() {
                     <div className="space-y-4 rounded-lg border p-4">
                         <FormLabel className="text-base">Custom Details</FormLabel>
                         <FormDescription>Add other details like social media links or other facts.</FormDescription>
+                        
+                        <div className="space-y-2 pt-2">
+                            <p className="text-sm font-medium text-muted-foreground">Quick add social links</p>
+                            <div className="flex flex-wrap gap-2">
+                                {socialButtons.map(({ label, icon: Icon }) => (
+                                    <Button key={label} type="button" variant="outline" size="sm" onClick={() => append({ label: label, value: "" })}>
+                                        <Icon className="mr-2 h-4 w-4" />
+                                        {label.split(' ')[0]}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {fields.length > 0 && <div className="pt-4 mt-4 border-t border-border" />}
+
                         <div className="space-y-4">
                             {fields.map((field, index) => (
                                 <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
@@ -348,7 +375,7 @@ export default function CreatePostPage() {
                                 </div>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Other Detail</Button>
                     </div>
                   </form>
                 </Form>
@@ -357,5 +384,3 @@ export default function CreatePostPage() {
     </div>
   );
 }
-
-    
