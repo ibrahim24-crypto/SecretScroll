@@ -13,12 +13,25 @@ import { auth, googleAuthProvider } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
   const { toast } = useToast();
   const [loading, setLoading] = useState<'google' | 'anonymous' | null>(null);
   const [name, setName] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmationText, setConfirmationText] = useState('');
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 3000); // 3 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const canProceed = isReady && confirmationText.toLowerCase() === 'i agree';
 
   const handleGoogleLogin = async () => {
     setLoading('google');
@@ -77,11 +90,25 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
             <p className="text-center text-muted-foreground">
               I am not responsible for any content, including pictures or personal details, that you may find on this platform. The content shared here is not published by me, and I do not endorse it. By entering, you acknowledge and agree to these terms.
             </p>
+
+            <div className="space-y-2 pt-4">
+                <Label htmlFor="agreement" className={!canProceed && isReady ? 'text-destructive' : ''}>
+                    Type "I agree" to accept the terms
+                </Label>
+                <Input
+                    id="agreement"
+                    placeholder="I agree"
+                    value={confirmationText}
+                    onChange={(e) => setConfirmationText(e.target.value)}
+                />
+                {!isReady && <p className="text-xs text-center text-muted-foreground pt-1 animate-pulse">Please take a moment to read the disclaimer...</p>}
+            </div>
+
             <div className="flex flex-col gap-3 pt-2">
-              <Button className="w-full" onClick={handleGoogleLogin} disabled={!!loading}>
+              <Button className="w-full" onClick={handleGoogleLogin} disabled={!!loading || !canProceed}>
                 {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Continue with Google'}
               </Button>
-              <Button variant="secondary" className="w-full" onClick={() => setDialogOpen(true)} disabled={!!loading}>
+              <Button variant="secondary" className="w-full" onClick={() => setDialogOpen(true)} disabled={!!loading || !canProceed}>
                 Continue Anonymously
               </Button>
             </div>
