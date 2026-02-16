@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, X, ArrowLeft, Instagram, Facebook, Twitter, Github, MessageSquare, Link as LinkIcon } from 'lucide-react';
+import { Loader2, Plus, X, ArrowLeft, Instagram, Facebook, Github, Link as LinkIcon } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
@@ -22,6 +22,8 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import Link from 'next/link';
 import type { PostImage } from '@/lib/types';
 import { getSocialPlatformIcon } from '@/lib/socials';
+import { WhatsappIcon } from '@/components/icons/WhatsappIcon';
+import { XIcon } from '@/components/icons/XIcon';
 
 
 const postSchema = z.object({
@@ -42,8 +44,8 @@ const categories = ['funny', 'deep', 'random', 'advice'] as const;
 const socialButtons = [
     { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'username' },
     { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'username or profile ID' },
-    { key: 'twitter', label: 'Twitter', icon: Twitter, placeholder: 'username' },
-    { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, placeholder: 'number with country code' },
+    { key: 'twitter', label: 'X / Twitter', icon: XIcon, placeholder: 'username' },
+    { key: 'whatsapp', label: 'WhatsApp', icon: WhatsappIcon, placeholder: 'number with country code' },
     { key: 'github', label: 'GitHub', icon: Github, placeholder: 'username' },
     { key: 'website', label: 'Website', icon: LinkIcon, placeholder: 'https://example.com' },
 ];

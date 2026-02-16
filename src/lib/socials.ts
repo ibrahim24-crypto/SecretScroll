@@ -1,9 +1,10 @@
-import { Github, Instagram, Link as LinkIcon, Twitter, Facebook, MessageSquare } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Github, Instagram, Link as LinkIcon, Facebook, MessageSquare } from "lucide-react";
+import { WhatsappIcon } from "@/components/icons/WhatsappIcon";
+import { XIcon } from "@/components/icons/XIcon";
 
 export type SocialPlatform = {
     name: string;
-    icon: LucideIcon;
+    icon: React.ComponentType<any>;
     baseUrl: string;
     placeholder: string;
 };
@@ -17,13 +18,13 @@ export const socialPlatforms: Record<string, SocialPlatform> = {
     },
     twitter: {
         name: 'X / Twitter',
-        icon: Twitter,
+        icon: XIcon,
         baseUrl: 'https://x.com/',
         placeholder: 'username'
     },
     x: {
         name: 'X / Twitter',
-        icon: Twitter,
+        icon: XIcon,
         baseUrl: 'https://x.com/',
         placeholder: 'username'
     },
@@ -41,7 +42,7 @@ export const socialPlatforms: Record<string, SocialPlatform> = {
     },
     whatsapp: {
         name: 'WhatsApp',
-        icon: MessageSquare, // Placeholder for WhatsApp.
+        icon: WhatsappIcon,
         baseUrl: 'https://wa.me/',
         placeholder: 'number with country code'
     },
@@ -61,7 +62,7 @@ export const socialPlatforms: Record<string, SocialPlatform> = {
 
 export type SocialPlatformKey = keyof typeof socialPlatforms;
 
-export function getSocialPlatformIcon(platform: string): LucideIcon {
+export function getSocialPlatformIcon(platform: string): React.ComponentType<any> {
     const key = platform.toLowerCase() as SocialPlatformKey;
     if (socialPlatforms[key]) {
         return socialPlatforms[key].icon;
