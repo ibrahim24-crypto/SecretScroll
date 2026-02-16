@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { GoogleIcon } from '@/components/icons/GoogleIcon';
+import { AnonymousIcon } from '@/components/icons/AnonymousIcon';
 
 function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
   const { toast } = useToast();
@@ -106,9 +108,11 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
 
             <div className="flex flex-col gap-3 pt-2">
               <Button className="w-full" onClick={handleGoogleLogin} disabled={!!loading || !canProceed}>
-                {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Continue with Google'}
+                {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-6 w-6" />}
+                Continue with Google
               </Button>
               <Button variant="secondary" className="w-full" onClick={() => setDialogOpen(true)} disabled={!!loading || !canProceed}>
+                {loading === 'anonymous' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AnonymousIcon className="mr-2 h-6 w-6" />}
                 Continue Anonymously
               </Button>
             </div>
