@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
@@ -13,22 +13,22 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, X, ArrowLeft, Instagram, Facebook, Twitter, Github, MessageSquare, Link as LinkIcon } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Image from 'next/image';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import type { AppSettings, PostImage } from '@/lib/types';
-import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
+import type { PostImage } from '@/lib/types';
+import { getSocialPlatformIcon } from '@/lib/socials';
 
 
 const postSchema = z.object({
-  title: z.string().min(1, 'Title is required.'),
+  title: z.string().min(1, 'Name is required.'),
   content: z.string().optional(),
   category: z.enum(['funny', 'deep', 'random', 'advice']).optional(),
-  eventDate: z.date().optional(),
+  eventDate: z.date().optional().nullable(),
   imageUrls: z.array(z.string()).optional(),
   customFields: z.array(z.object({
     label: z.string(),
@@ -39,6 +39,16 @@ const postSchema = z.object({
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
+const socialButtons = [
+    { key: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'username' },
+    { key: 'facebook', label: 'Facebook', icon: Facebook, placeholder: 'username or profile ID' },
+    { key: 'twitter', label: 'Twitter', icon: Twitter, placeholder: 'username' },
+    { key: 'whatsapp', label: 'WhatsApp', icon: MessageSquare, placeholder: 'number with country code' },
+    { key: 'github', label: 'GitHub', icon: Github, placeholder: 'username' },
+    { key: 'website', label: 'Website', icon: LinkIcon, placeholder: 'https://example.com' },
+];
+
+
 export default function CreatePostPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -47,6 +57,10 @@ export default function CreatePostPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [forbiddenWords, setForbiddenWords] = useState<string[]>([]);
+
+  const [socialDialogOpen, setSocialDialogOpen] = useState(false);
+  const [currentSocial, setCurrentSocial] = useState<{ key: string; label: string; icon: any; placeholder: string; } | null>(null);
+  const [socialValue, setSocialValue] = useState('');
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -77,9 +91,29 @@ export default function CreatePostPage() {
     control: form.control,
     name: "customFields"
   });
-  
-  const watchedCustomFields = form.watch('customFields');
 
+  const handleOpenSocialDialog = (social: typeof socialButtons[number]) => {
+    setCurrentSocial(social);
+    setSocialValue('');
+    setSocialDialogOpen(true);
+  };
+
+  const handleSaveSocial = () => {
+    if (currentSocial && socialValue.trim()) {
+        const exists = fields.some(field => field.label.toLowerCase() === currentSocial.label.toLowerCase());
+        if(exists){
+             toast({ title: 'Already added', description: `You have already added a link for ${currentSocial.label}.` });
+             setSocialDialogOpen(false);
+             return;
+        }
+        append({ label: currentSocial.label, value: socialValue.trim() });
+        setSocialDialogOpen(false);
+        setCurrentSocial(null);
+    } else {
+        toast({ title: 'Field is empty', description: 'Please enter a value to save.', variant: 'destructive' });
+    }
+  };
+  
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -168,7 +202,7 @@ export default function CreatePostPage() {
       };
       
       const cleanPostData = Object.fromEntries(
-        Object.entries(postData).filter(([_, v]) => v !== undefined)
+        Object.entries(postData).filter(([_, v]) => v !== undefined && v !== null)
       );
 
       const postCollectionRef = collection(db, 'posts');
@@ -226,10 +260,10 @@ export default function CreatePostPage() {
                 <Form {...form}>
                   <form id="create-post-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <FormField control={form.control} name="title" render={({ field }) => (
-                      <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., A funny thing happened today..." {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Person Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="content" render={({ field }) => (
-                      <FormItem><FormLabel>Content (Optional)</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Share some details about this person." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
                     )} />
                     
                     <FormField control={form.control} name="category" render={({ field }) => (
@@ -250,35 +284,17 @@ export default function CreatePostPage() {
                       name="eventDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Event Date (Optional)</FormLabel>
+                          <FormLabel>Birth Date (Optional)</FormLabel>
                           <FormControl>
-                            <Input
+                             <Input
                               type="date"
-                              value={
-                                field.value instanceof Date
-                                  ? `${field.value.getFullYear()}-${String(
-                                      field.value.getMonth() + 1
-                                    ).padStart(2, '0')}-${String(
-                                      field.value.getDate()
-                                    ).padStart(2, '0')}`
-                                  : ''
-                              }
-                              onChange={(e) => {
-                                if (e.target.value) {
-                                  const [year, month, day] = e.target.value
-                                    .split('-')
-                                    .map(Number);
-                                  field.onChange(
-                                    new Date(year, month - 1, day)
-                                  );
-                                } else {
-                                  field.onChange(null);
-                                }
-                              }}
+                              className="w-full"
+                              value={field.value ? new Date(field.value).toISOString().split('T')[0] : ''}
+                              onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                             />
                           </FormControl>
                           <FormDescription>
-                            If your post is about an event, add the date.
+                            The person's date of birth.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -308,59 +324,65 @@ export default function CreatePostPage() {
                     )} />
                     
                     <div className="space-y-4 rounded-lg border p-4">
-                        <FormLabel className="text-base">Custom Details (Optional)</FormLabel>
-                        <FormDescription>Add other details (e.g., social links, likes, dislikes).</FormDescription>
-                        <div className="space-y-4">
-                            {fields.map((field, index) => (
-                                <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
-                                    <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
-                                        <FormItem className="flex-1">
-                                            <FormLabel className="text-xs">Label</FormLabel>
-                                            <FormControl><Input placeholder="e.g., Instagram, First Kiss" {...controllerField} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
+                        <FormLabel className="text-base">Social Links (Optional)</FormLabel>
+                        <FormDescription>Add links to social media profiles or websites.</FormDescription>
 
-                                    <Controller
-                                        control={form.control}
-                                        name={`customFields.${index}.value`}
-                                        render={({ field: controllerField }) => {
-                                            const currentLabel = watchedCustomFields?.[index]?.label || '';
-                                            const isSocial = isSocialPlatform(currentLabel);
-                                            const Icon = getSocialPlatformIcon(currentLabel);
+                        {/* Display added links */}
+                        <div className="space-y-2">
+                            {fields.map((field, index) => {
+                                const Icon = getSocialPlatformIcon(field.label);
+                                return (
+                                    <div key={field.id} className="flex items-center justify-between gap-2 p-2 border rounded-md bg-secondary/30">
+                                        <div className="flex items-center gap-3">
+                                            <Icon className="h-5 w-5 text-muted-foreground" />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-semibold">{field.label}</span>
+                                                <span className="text-sm text-muted-foreground break-all">{field.value}</span>
+                                            </div>
+                                        </div>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><X className="h-4 w-4" /></Button>
+                                    </div>
+                                )
+                            })}
+                        </div>
 
-                                            return (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel className="text-xs">Value</FormLabel>
-                                                    <div className="relative flex items-center">
-                                                        {isSocial && Icon && (
-                                                            <div className="absolute left-3">
-                                                                <Icon className="h-4 w-4 text-muted-foreground" />
-                                                            </div>
-                                                        )}
-                                                        <FormControl>
-                                                          <Input
-                                                            placeholder={isSocial ? 'username' : 'e.g., at the park...'}
-                                                            className={cn(isSocial && 'pl-10')}
-                                                            {...controllerField}
-                                                          />
-                                                        </FormControl>
-                                                    </div>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            );
-                                        }}
-                                    />
-                                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className="shrink-0"><X className="h-4 w-4" /></Button>
-                                </div>
+                        {/* Buttons to add new links */}
+                        <div className="flex flex-wrap gap-2 pt-2">
+                            {socialButtons.map((social) => (
+                                <Button key={social.key} type="button" variant="outline" size="sm" onClick={() => handleOpenSocialDialog(social)}>
+                                    <social.icon className="mr-2 h-4 w-4" />
+                                    Add {social.label}
+                                </Button>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
                     </div>
                   </form>
                 </Form>
             </div>
         </main>
+        <Dialog open={socialDialogOpen} onOpenChange={setSocialDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add {currentSocial?.label}</DialogTitle>
+                    <DialogDescription>
+                        Enter the {currentSocial?.label} {currentSocial?.key === 'website' ? 'URL' : 'username or ID'} below.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <Input
+                        id="social-value"
+                        value={socialValue}
+                        onChange={(e) => setSocialValue(e.target.value)}
+                        placeholder={currentSocial?.placeholder}
+                        autoFocus
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => setSocialDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleSaveSocial}>Save Link</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
