@@ -33,6 +33,11 @@ service cloud.firestore {
       allow delete: if (isSuperAdmin() || (isAdmin() && hasPermission('delete_users'))) && request.auth.uid != userId;
     }
 
+    match /userDisplayNames/{name} {
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+    }
+
     match /posts/{postId} {
       allow read: if true;
       allow create: if true;

@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { signInWithPopup, signInAnonymously, updateProfile } from 'firebase/auth';
-import { auth, googleAuthProvider } from '@/lib/firebase';
+import { auth, googleAuthProvider, db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -57,26 +58,42 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleAnonymousLogin = async () => {
-    if (!name.trim()) {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
       toast({ title: t('toasts.nameRequired'), variant: 'destructive' });
       return;
     }
     setLoading('anonymous');
+
     try {
-      const userCredential = await signInAnonymously(auth);
-      await updateProfile(userCredential.user, { displayName: name.trim() });
-      toast({ title: t('toasts.welcomeUser', { name: name.trim() }) });
-      onComplete();
+        // Check if display name is already taken by another anonymous user
+        const displayNameRef = doc(db, 'userDisplayNames', trimmedName);
+        const docSnap = await getDoc(displayNameRef);
+
+        if (docSnap.exists()) {
+            toast({
+              title: t('toasts.nameTakenTitle'),
+              description: t('toasts.nameTakenDescription'),
+              variant: 'destructive',
+            });
+            setLoading(null);
+            return;
+        }
+        
+        // If name is not taken, proceed with login
+        const userCredential = await signInAnonymously(auth);
+        await updateProfile(userCredential.user, { displayName: trimmedName });
+        toast({ title: t('toasts.welcomeUser', { name: trimmedName }) });
+        onComplete();
+        // No need to set dialog or loading state to false as the component unmounts
     } catch (error) {
-      console.error('Error signing in anonymously: ', error);
-      toast({
-        title: t('toasts.authFailed'),
-        description: t('toasts.authFailedDescription'),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(null);
-      setDialogOpen(false);
+        console.error('Error signing in anonymously: ', error);
+        toast({
+            title: t('toasts.authFailed'),
+            description: t('toasts.authFailedDescription'),
+            variant: 'destructive',
+        });
+        setLoading(null);
     }
   };
 

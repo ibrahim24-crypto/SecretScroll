@@ -2,7 +2,7 @@
 
 import { useState, useEffect, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/useAuth';
 import type { UserProfile, AdminPermissions, Permission } from '@/lib/types';
@@ -63,10 +63,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             permissions: isSuperAdmin ? allPermissions : noPermissions,
             createdAt: serverTimestamp() as any,
           };
-          setDoc(userRef, newUserProfile)
-            .then(async () => {
-                const newDocSnap = await getDoc(userRef);
-                setUserProfile(newDocSnap.data() as UserProfile);
+          
+          const batch = writeBatch(db);
+          batch.set(userRef, newUserProfile);
+
+          // If it's an anonymous user, also create the display name lock file.
+          if (user.email === null && user.displayName) {
+              const displayNameRef = doc(db, 'userDisplayNames', user.displayName);
+              batch.set(displayNameRef, { uid: user.uid });
+          }
+
+          batch.commit()
+            .then(() => {
+                // We can assume the profile is what we just set. No need to re-fetch.
+                setUserProfile(newUserProfile);
             })
             .catch((serverError) => {
                 const permissionError = new FirestorePermissionError({

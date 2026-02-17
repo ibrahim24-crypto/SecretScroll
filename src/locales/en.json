@@ -76,6 +76,8 @@
     "authFailedDescription": "Could not sign you in. Please try again.",
     "welcomeUser": "Welcome, {name}!",
     "nameRequired": "Please enter a name.",
+    "nameTakenTitle": "Name already taken",
+    "nameTakenDescription": "Please choose a different name to continue.",
     "postPublished": "Post Published!",
     "postPublishedDescription": "Your post is now live.",
     "postUpdated": "Post Updated!",

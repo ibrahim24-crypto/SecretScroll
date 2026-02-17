@@ -76,6 +76,8 @@
     "authFailedDescription": "Impossible de vous connecter. Veuillez réessayer.",
     "welcomeUser": "Bienvenue, {name} !",
     "nameRequired": "Veuillez entrer un nom.",
+    "nameTakenTitle": "Nom déjà pris",
+    "nameTakenDescription": "Veuillez choisir un nom différent pour continuer.",
     "postPublished": "Post publié !",
     "postPublishedDescription": "Votre post est maintenant en ligne.",
     "postUpdated": "Post mis à jour !",

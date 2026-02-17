@@ -76,6 +76,8 @@
     "authFailedDescription": "تعذر تسجيل دخولك. يرجى المحاولة مرة أخرى.",
     "welcomeUser": "أهلاً بك، {name}!",
     "nameRequired": "الرجاء إدخال اسم.",
+    "nameTakenTitle": "الاسم مستخدم بالفعل",
+    "nameTakenDescription": "الرجاء اختيار اسم مختلف للمتابعة.",
     "postPublished": "تم نشر المنشور!",
     "postPublishedDescription": "منشورك الآن مباشر.",
     "postUpdated": "تم تحديث المنشور!",
