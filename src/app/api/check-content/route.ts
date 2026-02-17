@@ -10,8 +10,8 @@ export async function POST(request: Request) {
 
   if (!API_KEY) {
     console.error('Bad words API key is not configured in .env file.');
-    // Fail open: If the check is not configured, we don't flag.
-    return NextResponse.json({ flagged: false, badWords: [] });
+    // If the key is missing, we can't check, so we must block.
+    return NextResponse.json({ error: "Content moderation is not configured." }, { status: 500 });
   }
 
   if (!text) {
@@ -28,9 +28,10 @@ export async function POST(request: Request) {
     });
 
     if (!response.ok) {
-        console.error('Bad words API request failed:', response.status, response.statusText);
-        // API failed. We will flag for review but not block the user.
-        return NextResponse.json({ flagged: true, badWords: [] });
+        const errorText = await response.text();
+        console.error('Bad words API request failed:', response.status, response.statusText, errorText);
+        // The external API failed. Return a server error so the client knows something went wrong.
+        return NextResponse.json({ error: "Content moderation service failed." }, { status: 500 });
     }
 
     const result = await response.json();
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ flagged, badWords });
   } catch (error) {
     console.error('Error calling bad words API:', error);
-    // API request failed. We will flag for review but not block the user.
-    return NextResponse.json({ flagged: true, badWords: [] });
+    // The fetch itself failed (e.g., network error). Return a server error.
+    return NextResponse.json({ error: "Could not connect to content moderation service." }, { status: 500 });
   }
 }
