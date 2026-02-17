@@ -35,7 +35,6 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'approve_pictures', label: 'Picture Approval', description: 'Can approve or reject user-submitted pictures.' },
     { id: 'delete_posts', label: 'Post Deletion', description: 'Can delete any post from the feed.' },
     { id: 'delete_comments', label: 'Comment Deletion', description: 'Can delete any comment from any post.' },
-    { id: 'view_users', label: 'View Users', description: 'Can view the list of all registered users.' },
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
     { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },
 ];
@@ -608,10 +607,10 @@ export function AdminDashboard() {
   const { toast } = useToast();
 
   const permissions = userProfile?.permissions;
-  const canViewDashboard = permissions && Object.values(permissions).some(v => v === true);
+  const canViewDashboard = userProfile?.role === 'admin';
 
   useEffect(() => {
-    if (!authLoading && (userProfile?.role !== 'admin' || !canViewDashboard)) {
+    if (!authLoading && !canViewDashboard) {
         toast({ title: 'Access Denied', description: 'You do not have permission to view this page.', variant: 'destructive' });
         router.push('/');
     }
@@ -627,7 +626,7 @@ export function AdminDashboard() {
         <TabsList className="inline-flex">
           <TabsTrigger value="posts">Manage Posts</TabsTrigger>
           {permissions?.approve_pictures && <TabsTrigger value="images">Image Approval</TabsTrigger>}
-          {permissions?.view_users && <TabsTrigger value="users">Manage Users</TabsTrigger>}
+          {userProfile?.role === 'admin' && <TabsTrigger value="users">Manage Users</TabsTrigger>}
           {permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
         </TabsList>
       </div>
@@ -639,7 +638,7 @@ export function AdminDashboard() {
             <ImageApprovalQueue />
         </TabsContent>
        )}
-       {permissions?.view_users && (
+       {userProfile?.role === 'admin' && (
         <TabsContent value="users" className="mt-4">
             <UserManager />
         </TabsContent>
