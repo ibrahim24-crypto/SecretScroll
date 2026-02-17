@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 import { collection, query, getDocs, doc, orderBy, deleteDoc, where, writeBatch, updateDoc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Post, UserProfile, AppSettings, PostImage, Permission, AdminPermissions } from '@/lib/types';
-import { PERMISSIONS } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +36,7 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'delete_comments', label: 'Comment Deletion', description: 'Can delete any comment from any post.' },
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
     { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },
+    { id: 'manage_forbidden_words', label: 'Word Filter', description: 'Can manage the list of forbidden words.' },
 ];
 
 const permissionsSchema = z.object({
@@ -601,6 +601,108 @@ function AdminManager() {
 }
 // #endregion
 
+// #region Settings Manager
+function SettingsManager() {
+    const [settings, setSettings] = useState<AppSettings>({ forbiddenWords: [] });
+    const [loading, setLoading] = useState(true);
+    const [newWord, setNewWord] = useState('');
+    const [isSaving, startTransition] = useTransition();
+    const { toast } = useToast();
+    const settingsRef = doc(db, 'settings', 'global');
+
+    useEffect(() => {
+        const getSettings = async () => {
+            setLoading(true);
+            try {
+                const docSnap = await getDoc(settingsRef);
+                if (docSnap.exists()) {
+                    setSettings(docSnap.data() as AppSettings);
+                }
+            } catch (e) {
+                console.error("Error fetching settings:", e);
+                toast({ title: 'Error', description: 'Could not load settings.', variant: 'destructive'});
+            } finally {
+                setLoading(false);
+            }
+        }
+        getSettings();
+    }, [toast]);
+
+    const handleAddWord = () => {
+        const word = newWord.trim().toLowerCase();
+        if (word && !settings.forbiddenWords.includes(word)) {
+            const updatedWords = [...settings.forbiddenWords, word].sort();
+            setSettings({ ...settings, forbiddenWords: updatedWords });
+            setNewWord('');
+        }
+    };
+
+    const handleRemoveWord = (wordToRemove: string) => {
+        const updatedWords = settings.forbiddenWords.filter(w => w !== wordToRemove);
+        setSettings({ ...settings, forbiddenWords: updatedWords });
+    };
+
+    const handleSaveChanges = () => {
+        startTransition(() => {
+            setDoc(settingsRef, { forbiddenWords: settings.forbiddenWords }, { merge: true })
+                .then(() => {
+                    toast({ title: 'Success!', description: 'Forbidden words list has been updated.' });
+                })
+                .catch((error) => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: settings.forbiddenWords }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
+        });
+    };
+
+    if (loading) {
+        return <Skeleton className="h-64 w-full" />
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Manage Forbidden Words</CardTitle>
+                <CardDescription>Add or remove words that should be blocked from posts and comments. This list is checked before the external AI moderation.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                    <Input 
+                        value={newWord}
+                        onChange={e => setNewWord(e.target.value)}
+                        placeholder="Add a new word..."
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddWord(); } }}
+                    />
+                    <Button onClick={handleAddWord}>Add Word</Button>
+                </div>
+                <div className="border rounded-md p-4 space-y-2 h-64 overflow-y-auto">
+                    {settings.forbiddenWords.length === 0 ? (
+                        <p className="text-muted-foreground text-center">No forbidden words yet.</p>
+                    ) : (
+                         <div className="flex flex-wrap gap-2">
+                            {settings.forbiddenWords.map(word => (
+                                <Badge key={word} variant="secondary" className="flex items-center gap-1 text-base py-1">
+                                    {word}
+                                    <button onClick={() => handleRemoveWord(word)} className="rounded-full hover:bg-muted-foreground/20 p-0.5 ml-1">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button onClick={handleSaveChanges} disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+// #endregion
+
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -628,6 +730,7 @@ export function AdminDashboard() {
           {permissions?.approve_pictures && <TabsTrigger value="images">Image Approval</TabsTrigger>}
           {userProfile?.role === 'admin' && <TabsTrigger value="users">Manage Users</TabsTrigger>}
           {permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
+          {permissions?.manage_forbidden_words && <TabsTrigger value="settings">Word Filter</TabsTrigger>}
         </TabsList>
       </div>
       <TabsContent value="posts" className="mt-4">
@@ -646,6 +749,11 @@ export function AdminDashboard() {
        {permissions?.manage_admins && (
         <TabsContent value="admins" className="mt-4">
             <AdminManager />
+        </TabsContent>
+       )}
+       {permissions?.manage_forbidden_words && (
+        <TabsContent value="settings" className="mt-4">
+          <SettingsManager />
         </TabsContent>
        )}
     </Tabs>

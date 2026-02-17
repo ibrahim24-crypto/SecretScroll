@@ -23,6 +23,7 @@ import Link from 'next/link';
 import type { Post, PostImage } from '@/lib/types';
 import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useLocale } from '@/hooks/useLocale';
 
 const postSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -43,6 +44,7 @@ const categories = ['funny', 'deep', 'random', 'advice'] as const;
 export default function EditPostPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLocale();
   const router = useRouter();
   const params = useParams();
   const postId = params.id as string;
@@ -78,7 +80,7 @@ export default function EditPostPage() {
           const postData = { id: docSnap.id, ...docSnap.data() } as Post;
 
           if (postData.authorUid !== user.uid) {
-            toast({ title: "Unauthorized", description: "You can only edit your own posts.", variant: "destructive" });
+            toast({ title: t('toasts.unauthorized'), description: t('toasts.unauthorizedEdit'), variant: "destructive" });
             router.push('/');
             return;
           }
@@ -95,12 +97,12 @@ export default function EditPostPage() {
           form.reset(defaultValues);
           setImagePreviews(defaultValues.imageUrls || []);
         } else {
-          toast({ title: "Not Found", description: "This post does not exist.", variant: "destructive" });
+          toast({ title: t('toasts.notFound'), description: t('toasts.postNotFound'), variant: "destructive" });
           router.push('/');
         }
       } catch (error) {
         console.error("Error fetching post for editing:", error);
-        toast({ title: "Error", description: "Could not load post data.", variant: "destructive" });
+        toast({ title: t('toasts.error'), description: t('toasts.loadPostError'), variant: "destructive" });
         router.push('/');
       } finally {
         setLoading(false);
@@ -110,7 +112,7 @@ export default function EditPostPage() {
     if (user) {
         fetchPost();
     }
-  }, [postId, user, router, toast, form]);
+  }, [postId, user, router, toast, form, t]);
 
 
   const { fields, append, remove } = useFieldArray({
@@ -158,7 +160,7 @@ export default function EditPostPage() {
         })
         .catch(error => {
             console.error('Error uploading images:', error);
-            toast({ title: 'Error', description: 'One or more images failed to upload.', variant: 'destructive' });
+            toast({ title: t('toasts.error'), description: 'One or more images failed to upload.', variant: 'destructive' });
         })
         .finally(() => {
             setIsUploading(false);
@@ -180,6 +182,27 @@ export default function EditPostPage() {
 
       if (contentToCheck.trim()) {
         try {
+          // 1. Check against local forbidden words list first
+          const settingsRef = doc(db, 'settings', 'global');
+          const settingsSnap = await getDoc(settingsRef);
+          if (settingsSnap.exists()) {
+              const forbiddenWords = settingsSnap.data().forbiddenWords as string[];
+              const foundWords = forbiddenWords.filter(word => 
+                  new RegExp(`\\b${word}\\b`, 'i').test(contentToCheck)
+              );
+
+              if (foundWords.length > 0) {
+                  toast({
+                      variant: "destructive",
+                      title: t('toasts.inappropriateContent'),
+                      description: t('toasts.inappropriateContentWords', { words: foundWords.join(", ") }),
+                      duration: 9000,
+                  });
+                  return; // Block submission
+              }
+          }
+
+          // 2. If local check passes, check against external API
           const checkRes = await fetch('/api/check-content', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -189,8 +212,8 @@ export default function EditPostPage() {
           if (!checkRes.ok) {
             toast({
               variant: "destructive",
-              title: "Could not verify content",
-              description: "The content moderation service is currently unavailable. Please try again later.",
+              title: t('toasts.contentCheckError'),
+              description: t('toasts.contentCheckErrorDescription'),
               duration: 9000,
             });
             return; // Block submission
@@ -201,15 +224,15 @@ export default function EditPostPage() {
             if (badWords && badWords.length > 0) {
               toast({
                 variant: "destructive",
-                title: "Inappropriate Content Detected",
-                description: `Please remove the following word(s) before saving: ${badWords.join(", ")}`,
+                title: t('toasts.inappropriateContent'),
+                description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
                 duration: 9000,
               });
             } else {
               toast({
                 variant: "destructive",
-                title: "Inappropriate Content Detected",
-                description: "Your post contains content that violates our guidelines. Please review and revise.",
+                title: t('toasts.inappropriateContent'),
+                description: t('toasts.inappropriateContentDescription'),
                 duration: 9000,
               });
             }
@@ -219,8 +242,8 @@ export default function EditPostPage() {
           console.error("Error checking content:", error);
           toast({
             variant: "destructive",
-            title: "Could not verify content",
-            description: "There was a problem connecting to the content moderation service. Please check your network and try again.",
+            title: t('toasts.contentCheckError'),
+            description: t('toasts.contentCheckConnectionError'),
             duration: 9000,
           });
           return; // Block submission
@@ -257,7 +280,7 @@ export default function EditPostPage() {
       
       try {
         await updateDoc(postRef, cleanUpdatedData);
-        toast({ title: 'Post Updated!', description: 'Your changes have been saved.' });
+        toast({ title: t('toasts.postUpdated'), description: t('toasts.postUpdatedDescription') });
         router.push(`/post/${post.id}`);
       } catch (serverError) {
         console.error("Error updating post: ", serverError);
@@ -295,10 +318,10 @@ export default function EditPostPage() {
                     <ArrowLeft />
                 </Link>
             </Button>
-            <h1 className="text-lg font-semibold">Edit Post</h1>
+            <h1 className="text-lg font-semibold">{t('createPost.editTitle')}</h1>
             <Button form="edit-post-form" type="submit" size="sm" disabled={isPending || isUploading}>
               {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Save
+              {t('buttons.save')}
             </Button>
         </header>
 
@@ -310,33 +333,33 @@ export default function EditPostPage() {
                     <Button variant="ghost" asChild>
                         <Link href={`/post/${postId}`}>
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Post
+                            {t('createPost.backToPost')}
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-headline font-bold">Edit Post</h1>
+                    <h1 className="text-2xl font-headline font-bold">{t('createPost.editTitle')}</h1>
                     <Button form="edit-post-form" type="submit" disabled={isPending || isUploading}>
                       {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                       <Save className="mr-2 h-4 w-4" />
-                      Save Changes
+                      {t('buttons.saveChanges')}
                     </Button>
                 </header>
                 
                 <Form {...form}>
                   <form id="edit-post-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <FormField control={form.control} name="title" render={({ field }) => (
-                      <FormItem><FormLabel>Title</FormLabel><FormControl><Input placeholder="e.g., A funny thing happened today..." {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>{t('createPost.personNameLabel')}</FormLabel><FormControl><Input placeholder={t('createPost.personNamePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="content" render={({ field }) => (
-                      <FormItem><FormLabel>Content (Optional)</FormLabel><FormControl><Textarea placeholder="Share your story, thought, or confession." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>{t('createPost.descriptionLabel')}</FormLabel><FormControl><Textarea placeholder={t('createPost.descriptionPlaceholder')} {...field} rows={6} /></FormControl><FormMessage /></FormItem>
                     )} />
                     
                     <FormField control={form.control} name="category" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Category (Optional)</FormLabel>
+                            <FormLabel>{t('createPost.categoryLabel')}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder={t('createPost.categoryPlaceholder')} /></SelectTrigger></FormControl>
                             <SelectContent>
-                                {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
+                                {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{t(`categories.${cat}`)}</SelectItem>)}
                             </SelectContent>
                             </Select>
                             <FormMessage />
@@ -348,7 +371,7 @@ export default function EditPostPage() {
                       name="eventDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Event Date (Optional)</FormLabel>
+                          <FormLabel>{t('createPost.birthDateLabel')}</FormLabel>
                           <FormControl>
                             <Input
                               type="date"
@@ -376,7 +399,7 @@ export default function EditPostPage() {
                             />
                           </FormControl>
                           <FormDescription>
-                            If your post is about an event, add the date.
+                            {t('createPost.birthDateDescription')}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -385,10 +408,10 @@ export default function EditPostPage() {
 
                     <FormField control={form.control} name="imageUrls" render={() => (
                       <FormItem>
-                        <FormLabel>Images</FormLabel>
-                        <FormDescription>Manage your post's images. New images will require admin approval.</FormDescription>
+                        <FormLabel>{t('createPost.imagesLabel')}</FormLabel>
+                        <FormDescription>{t('createPost.editImagesDescription')}</FormDescription>
                         <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
-                        {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
+                        {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>{t('createPost.uploading')}</span></div>}
                         {imagePreviews.length > 0 && (
                           <div className="grid grid-cols-3 gap-2 mt-2">
                               {imagePreviews.map((preview, index) => (
@@ -406,15 +429,15 @@ export default function EditPostPage() {
                     )} />
                     
                     <div className="space-y-4 rounded-lg border p-4">
-                        <FormLabel className="text-base">Custom Details</FormLabel>
-                        <FormDescription>Add or edit other details.</FormDescription>
+                        <FormLabel className="text-base">{t('createPost.customDetailsLabel')}</FormLabel>
+                        <FormDescription>{t('createPost.editCustomDetailsDescription')}</FormDescription>
                         <div className="space-y-4">
                             {fields.map((field, index) => (
                                 <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
                                     <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
                                         <FormItem className="flex-1">
-                                            <FormLabel className="text-xs">Label</FormLabel>
-                                            <FormControl><Input placeholder="e.g., Instagram, First Kiss" {...controllerField} /></FormControl>
+                                            <FormLabel className="text-xs">{t('createPost.customFieldLabel')}</FormLabel>
+                                            <FormControl><Input placeholder={t('createPost.customFieldLabelPlaceholder')} {...controllerField} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -429,7 +452,7 @@ export default function EditPostPage() {
 
                                             return (
                                                 <FormItem className="flex-1">
-                                                    <FormLabel className="text-xs">Value</FormLabel>
+                                                    <FormLabel className="text-xs">{t('createPost.customFieldValue')}</FormLabel>
                                                     <div className="relative flex items-center">
                                                         {isSocial && Icon && (
                                                             <div className="absolute left-3">
@@ -438,7 +461,7 @@ export default function EditPostPage() {
                                                         )}
                                                         <FormControl>
                                                           <Input
-                                                            placeholder={isSocial ? 'username' : 'e.g., at the park...'}
+                                                            placeholder={isSocial ? t('createPost.customFieldValuePlaceholderSocial') : t('createPost.customFieldValuePlaceholder')}
                                                             className={cn(isSocial && 'pl-10')}
                                                             {...controllerField}
                                                           />
@@ -453,7 +476,7 @@ export default function EditPostPage() {
                                 </div>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Detail</Button>
+                        <Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />{t('createPost.addDetail')}</Button>
                     </div>
                   </form>
                 </Form>

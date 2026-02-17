@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -138,6 +138,27 @@ export default function CreatePostPage() {
 
       if (contentToCheck.trim()) {
         try {
+          // 1. Check against local forbidden words list first
+          const settingsRef = doc(db, 'settings', 'global');
+          const settingsSnap = await getDoc(settingsRef);
+          if (settingsSnap.exists()) {
+              const forbiddenWords = settingsSnap.data().forbiddenWords as string[];
+              const foundWords = forbiddenWords.filter(word => 
+                  new RegExp(`\\b${word}\\b`, 'i').test(contentToCheck)
+              );
+
+              if (foundWords.length > 0) {
+                  toast({
+                      variant: "destructive",
+                      title: t('toasts.inappropriateContent'),
+                      description: t('toasts.inappropriateContentWords', { words: foundWords.join(", ") }),
+                      duration: 9000,
+                  });
+                  return; // Block submission
+              }
+          }
+
+          // 2. If local check passes, check against external API
           const checkRes = await fetch('/api/check-content', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
