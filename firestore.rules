@@ -70,7 +70,7 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId) || isSuperAdmin() || (isAdmin() && hasPermission('delete_comments'));
     }
 
-    match /setting/{settingId} {
+    match /settings/{settingId} {
       allow read, write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
     }
   }

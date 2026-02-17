@@ -139,7 +139,7 @@ export default function CreatePostPage() {
       if (contentToCheck.trim()) {
         try {
           // 1. Check against local forbidden words list first
-          const settingsRef = doc(db, 'setting', 'config');
+          const settingsRef = doc(db, 'settings', 'config');
           const settingsSnap = await getDoc(settingsRef);
           if (settingsSnap.exists()) {
               const forbiddenWords = settingsSnap.data().forbiddenWords as string[];

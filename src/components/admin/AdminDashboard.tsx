@@ -608,7 +608,7 @@ function SettingsManager() {
     const [newWord, setNewWord] = useState('');
     const [isSaving, startTransition] = useTransition();
     const { toast } = useToast();
-    const settingsRef = doc(db, 'setting', 'config');
+    const settingsRef = doc(db, 'settings', 'config');
 
     useEffect(() => {
         const getSettings = async () => {
