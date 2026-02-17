@@ -12,25 +12,27 @@ import { ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Header } from '../layout/Header';
 import { LoginButton } from '../auth/LoginButton';
+import { useLocale } from '@/hooks/useLocale';
 
 const BATCH_SIZE = 5; // Smaller batch for mobile-first full-screen view
 
 // A special component for the first "reel" on mobile
 function WelcomeReel() {
     const { user } = useAuth();
+    const { t } = useLocale();
     return (
         <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8 relative">
             <div className="absolute top-0 left-0 right-0">
                 <Header/>
             </div>
-            <h1 className="text-4xl font-headline font-bold mb-4">Welcome to SecretReels</h1>
-            <p className="text-xl text-muted-foreground mb-8">Swipe up to start exploring.</p>
+            <h1 className="text-4xl font-headline font-bold mb-4">{t('feed.welcomeTitle')}</h1>
+            <p className="text-xl text-muted-foreground mb-8">{t('feed.welcomeSubtitle')}</p>
             <ArrowDown className="h-12 w-12 animate-bounce text-primary" />
              {!user && (
                 <div className="absolute bottom-24">
-                     <p className="mb-4">Or create an account to share your own story.</p>
+                     <p className="mb-4">{t('feed.getStartedPrompt')}</p>
                      <Button asChild>
-                        <Link href="/add-person">Get Started</Link>
+                        <Link href="/add-person">{t('feed.getStartedButton')}</Link>
                      </Button>
                 </div>
             )}
@@ -40,6 +42,7 @@ function WelcomeReel() {
 
 export function Feed() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -152,11 +155,11 @@ export function Feed() {
             )}
              {!loading && posts.length === 0 && (
                  <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8">
-                     <h2 className="text-2xl font-bold font-headline">Nothing to see here yet.</h2>
-                     <p className="text-muted-foreground mb-4">Be the first one to share a post!</p>
+                     <h2 className="text-2xl font-bold font-headline">{t('feed.noPostsTitle')}</h2>
+                     <p className="text-muted-foreground mb-4">{t('feed.noPostsSubtitle')}</p>
                       {user ? (
                         <Button asChild>
-                            <Link href="/add-person">Create the first post</Link>
+                            <Link href="/add-person">{t('feed.createFirstPost')}</Link>
                         </Button>
                      ) : (
                         <LoginButton />
@@ -165,8 +168,8 @@ export function Feed() {
             )}
              {!loading && !hasMore && posts.length > 0 && (
                  <div className="h-dvh w-screen snap-start flex flex-col items-center justify-center text-center bg-background text-foreground p-8">
-                     <h2 className="text-2xl font-bold font-headline">You've reached the end</h2>
-                     <p className="text-muted-foreground">Check back later for new posts!</p>
+                     <h2 className="text-2xl font-bold font-headline">{t('feed.endOfFeedTitle')}</h2>
+                     <p className="text-muted-foreground">{t('feed.endOfFeedSubtitle')}</p>
                  </div>
             )}
         </div>
@@ -189,10 +192,10 @@ export function Feed() {
                 </div>
             )}
             {!loading && !hasMore && posts.length > 0 && (
-                <p className="text-center text-muted-foreground mt-8">You've reached the end of the scroll.</p>
+                <p className="text-center text-muted-foreground mt-8">{t('feed.endOfFeedTitle')}</p>
             )}
             {!loading && posts.length === 0 && (
-                <p className="text-center text-muted-foreground mt-8">No posts yet. Be the first to create one!</p>
+                <p className="text-center text-muted-foreground mt-8">{t('feed.noPostsTitle')}</p>
             )}
         </div>
     </>

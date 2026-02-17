@@ -20,17 +20,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { LayoutDashboard, LogOut, User as UserIcon, Link2, Info, FileText, Copyright } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
 
 export function UserMenu() {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { t } = useLocale();
 
   const handleSignOut = async () => {
     try {
       await signOut(auth);
       toast({
-        title: 'Signed out',
-        description: 'You have been successfully signed out.',
+        title: t('userMenu.signOut'),
       });
     } catch (error) {
       console.error('Error signing out: ', error);
@@ -79,7 +80,7 @@ export function UserMenu() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.displayName || (isAnonymousUser ? 'Anonymous User' : 'User')}</p>
+            <p className="text-sm font-medium leading-none">{user.displayName || (isAnonymousUser ? t('userMenu.anonymousUser') : t('userMenu.user'))}</p>
             {!isAnonymousUser && <p className="text-xs leading-none text-muted-foreground">{user.email}</p>}
           </div>
         </DropdownMenuLabel>
@@ -88,7 +89,7 @@ export function UserMenu() {
           <DropdownMenuItem asChild>
             <Link href="/admin">
               <LayoutDashboard className="mr-2 h-4 w-4" />
-              <span>Admin Dashboard</span>
+              <span>{t('userMenu.adminDashboard')}</span>
             </Link>
           </DropdownMenuItem>
         )}
@@ -96,26 +97,26 @@ export function UserMenu() {
         <DropdownMenuSub>
           <DropdownMenuSubTrigger>
             <Info className="mr-2 h-4 w-4" />
-            <span>Info & Legal</span>
+            <span>{t('userMenu.infoAndLegal')}</span>
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent>
               <DropdownMenuItem asChild>
                 <Link href="/about">
                   <Info className="mr-2 h-4 w-4" />
-                  <span>About</span>
+                  <span>{t('userMenu.about')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/terms">
                   <FileText className="mr-2 h-4 w-4" />
-                  <span>Terms of Use</span>
+                  <span>{t('userMenu.terms')}</span>
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/copyright">
                   <Copyright className="mr-2 h-4 w-4" />
-                  <span>Copyright</span>
+                  <span>{t('userMenu.copyright')}</span>
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuSubContent>
@@ -133,7 +134,7 @@ export function UserMenu() {
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Sign out</span>
+          <span>{t('userMenu.signOut')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

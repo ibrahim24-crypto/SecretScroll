@@ -24,6 +24,7 @@ import { getSocialPlatformIcon, isSocialPlatform } from '@/lib/socials';
 import { cn } from '@/lib/utils';
 import { WhatsappIcon } from '@/components/icons/WhatsappIcon';
 import { XIcon } from '@/components/icons/XIcon';
+import { useLocale } from '@/hooks/useLocale';
 
 
 const postSchema = z.object({
@@ -39,7 +40,6 @@ const postSchema = z.object({
 });
 
 type PostFormValues = z.infer<typeof postSchema>;
-const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
 const socialButtons = [
     { label: 'Instagram', icon: Instagram },
@@ -55,10 +55,13 @@ const socialButtons = [
 export default function CreatePostPage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useLocale();
   const router = useRouter();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  
+  const categories = ['funny', 'deep', 'random', 'advice'] as const;
 
   const form = useForm<PostFormValues>({
     resolver: zodResolver(postSchema),
@@ -115,7 +118,7 @@ export default function CreatePostPage() {
         })
         .catch(error => {
             console.error('Error uploading images:', error);
-            toast({ title: 'Error', description: 'One or more images failed to upload.', variant: 'destructive' });
+            toast({ title: t('toasts.error'), description: 'One or more images failed to upload.', variant: 'destructive' });
         })
         .finally(() => {
             setIsUploading(false);
@@ -144,8 +147,8 @@ export default function CreatePostPage() {
           if (!checkRes.ok) {
             toast({
               variant: "destructive",
-              title: "Could not verify content",
-              description: "The content moderation service is currently unavailable. Please try again later.",
+              title: t('toasts.contentCheckError'),
+              description: t('toasts.contentCheckErrorDescription'),
               duration: 9000,
             });
             return; // Block submission
@@ -156,15 +159,15 @@ export default function CreatePostPage() {
             if (badWords && badWords.length > 0) {
               toast({
                 variant: "destructive",
-                title: "Inappropriate Content Detected",
-                description: `Please remove the following word(s) before publishing: ${badWords.join(", ")}`,
+                title: t('toasts.inappropriateContent'),
+                description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
                 duration: 9000,
               });
             } else {
               toast({
                 variant: "destructive",
-                title: "Inappropriate Content Detected",
-                description: "Your post contains content that violates our guidelines. Please review and revise.",
+                title: t('toasts.inappropriateContent'),
+                description: t('toasts.inappropriateContentDescription'),
                 duration: 9000,
               });
             }
@@ -174,8 +177,8 @@ export default function CreatePostPage() {
           console.error("Error checking content:", error);
           toast({
             variant: "destructive",
-            title: "Could not verify content",
-            description: "There was a problem connecting to the content moderation service. Please check your network and try again.",
+            title: t('toasts.contentCheckError'),
+            description: t('toasts.contentCheckConnectionError'),
             duration: 9000,
           });
           return; // Block submission
@@ -216,7 +219,7 @@ export default function CreatePostPage() {
 
       addDoc(postCollectionRef, cleanPostData)
         .then(() => {
-          toast({ title: 'Post Published!', description: `Your post is now live.` });
+          toast({ title: t('toasts.postPublished'), description: t('toasts.postPublishedDescription') });
           router.push('/');
         })
         .catch((serverError) => {
@@ -239,10 +242,10 @@ export default function CreatePostPage() {
                     <ArrowLeft />
                 </Link>
             </Button>
-            <h1 className="text-lg font-semibold">Create a Post</h1>
+            <h1 className="text-lg font-semibold">{t('createPost.title')}</h1>
             <Button form="create-post-form" type="submit" size="sm" disabled={isPending || isUploading}>
               {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Publish
+              {t('buttons.publish')}
             </Button>
         </header>
 
@@ -254,32 +257,32 @@ export default function CreatePostPage() {
                     <Button variant="ghost" asChild>
                         <Link href="/">
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Feed
+                            {t('createPost.backToFeed')}
                         </Link>
                     </Button>
-                    <h1 className="text-2xl font-headline font-bold">Create a Post</h1>
+                    <h1 className="text-2xl font-headline font-bold">{t('createPost.title')}</h1>
                     <Button form="create-post-form" type="submit" disabled={isPending || isUploading}>
                       {(isPending || isUploading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Publish
+                      {t('buttons.publish')}
                     </Button>
                 </header>
                 
                 <Form {...form}>
                   <form id="create-post-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
                     <FormField control={form.control} name="title" render={({ field }) => (
-                      <FormItem><FormLabel>Person Name</FormLabel><FormControl><Input placeholder="e.g., John Doe" {...field} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>{t('createPost.personNameLabel')}</FormLabel><FormControl><Input placeholder={t('createPost.personNamePlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
                     )} />
                     <FormField control={form.control} name="content" render={({ field }) => (
-                      <FormItem><FormLabel>Description (Optional)</FormLabel><FormControl><Textarea placeholder="Share some details about this person." {...field} rows={6} /></FormControl><FormMessage /></FormItem>
+                      <FormItem><FormLabel>{t('createPost.descriptionLabel')}</FormLabel><FormControl><Textarea placeholder={t('createPost.descriptionPlaceholder')} {...field} rows={6} /></FormControl><FormMessage /></FormItem>
                     )} />
                     
                     <FormField control={form.control} name="category" render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Category (Optional)</FormLabel>
+                            <FormLabel>{t('createPost.categoryLabel')}</FormLabel>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger></FormControl>
+                            <FormControl><SelectTrigger><SelectValue placeholder={t('createPost.categoryPlaceholder')} /></SelectTrigger></FormControl>
                             <SelectContent>
-                                {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{cat.replace('_', ' ')}</SelectItem>)}
+                                {categories.map(cat => <SelectItem key={cat} value={cat} className="capitalize">{t(`categories.${cat}`)}</SelectItem>)}
                             </SelectContent>
                             </Select>
                             <FormMessage />
@@ -291,7 +294,7 @@ export default function CreatePostPage() {
                       name="eventDate"
                       render={({ field }) => (
                         <FormItem className="flex flex-col">
-                          <FormLabel>Birth Date (Optional)</FormLabel>
+                          <FormLabel>{t('createPost.birthDateLabel')}</FormLabel>
                           <FormControl>
                              <Input
                               type="date"
@@ -301,7 +304,7 @@ export default function CreatePostPage() {
                             />
                           </FormControl>
                           <FormDescription>
-                            The person's date of birth.
+                            {t('createPost.birthDateDescription')}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -310,10 +313,10 @@ export default function CreatePostPage() {
 
                     <FormField control={form.control} name="imageUrls" render={() => (
                       <FormItem>
-                        <FormLabel>Images (Optional)</FormLabel>
-                        <FormDescription>Images will be reviewed by an admin before they are visible.</FormDescription>
+                        <FormLabel>{t('createPost.imagesLabel')}</FormLabel>
+                        <FormDescription>{t('createPost.imagesDescription')}</FormDescription>
                         <FormControl><Input type="file" accept="image/*" onChange={handleImageChange} disabled={isUploading} className="pt-2 text-sm" multiple /></FormControl>
-                        {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>Uploading...</span></div>}
+                        {isUploading && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /><span>{t('createPost.uploading')}</span></div>}
                         {imagePreviews.length > 0 && (
                           <div className="grid grid-cols-3 gap-2 mt-2">
                               {imagePreviews.map((preview, index) => (
@@ -331,11 +334,11 @@ export default function CreatePostPage() {
                     )} />
                     
                     <div className="space-y-4 rounded-lg border p-4">
-                        <FormLabel className="text-base">Custom Details</FormLabel>
-                        <FormDescription>Add other details like social media links or other facts.</FormDescription>
+                        <FormLabel className="text-base">{t('createPost.customDetailsLabel')}</FormLabel>
+                        <FormDescription>{t('createPost.customDetailsDescription')}</FormDescription>
                         
                         <div className="space-y-2 pt-2">
-                            <p className="text-sm font-medium text-muted-foreground">Quick add social links</p>
+                            <p className="text-sm font-medium text-muted-foreground">{t('createPost.quickAddSocial')}</p>
                             <div className="flex flex-wrap gap-2">
                                 {socialButtons.map(({ label, icon: Icon }) => (
                                     <Button key={label} type="button" variant="outline" size="sm" onClick={() => append({ label: label, value: "" })}>
@@ -353,8 +356,8 @@ export default function CreatePostPage() {
                                 <div key={field.id} className="flex items-end gap-2 p-2 border rounded-md relative">
                                     <FormField control={form.control} name={`customFields.${index}.label`} render={({ field: controllerField }) => (
                                         <FormItem className="flex-1">
-                                            <FormLabel className="text-xs">Label</FormLabel>
-                                            <FormControl><Input placeholder="e.g., Instagram, Nickname" {...controllerField} /></FormControl>
+                                            <FormLabel className="text-xs">{t('createPost.customFieldLabel')}</FormLabel>
+                                            <FormControl><Input placeholder={t('createPost.customFieldLabelPlaceholder')} {...controllerField} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />
@@ -369,7 +372,7 @@ export default function CreatePostPage() {
 
                                             return (
                                                 <FormItem className="flex-1">
-                                                    <FormLabel className="text-xs">Value</FormLabel>
+                                                    <FormLabel className="text-xs">{t('createPost.customFieldValue')}</FormLabel>
                                                     <div className="relative flex items-center">
                                                         {isSocial && Icon && (
                                                             <div className="absolute left-3">
@@ -378,7 +381,7 @@ export default function CreatePostPage() {
                                                         )}
                                                         <FormControl>
                                                           <Input
-                                                            placeholder={isSocial ? 'username' : 'e.g., Johnny'}
+                                                            placeholder={isSocial ? t('createPost.customFieldValuePlaceholderSocial') : t('createPost.customFieldValuePlaceholder')}
                                                             className={cn(isSocial && 'pl-10')}
                                                             {...controllerField}
                                                           />
@@ -393,7 +396,7 @@ export default function CreatePostPage() {
                                 </div>
                             ))}
                         </div>
-                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />Add Other Detail</Button>
+                        <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => append({ label: "", value: "" })}><Plus className="mr-2 h-4 w-4" />{t('createPost.addOtherDetail')}</Button>
                     </div>
                   </form>
                 </Form>

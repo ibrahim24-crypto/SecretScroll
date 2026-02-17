@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ColorThemeProvider } from '@/components/providers/ColorThemeProvider';
+import { LocaleProvider } from '@/components/providers/LocaleProvider';
 
 export const metadata: Metadata = {
   title: 'SecretReels',
@@ -34,11 +35,13 @@ export default function RootLayout({
             disableTransitionOnChange
         >
           <ColorThemeProvider>
-            <AuthProvider>
-            <FirebaseErrorListener />
-            {children}
-            <Toaster />
-            </AuthProvider>
+            <LocaleProvider>
+              <AuthProvider>
+              <FirebaseErrorListener />
+              {children}
+              <Toaster />
+              </AuthProvider>
+            </LocaleProvider>
           </ColorThemeProvider>
         </ThemeProvider>
       </body>

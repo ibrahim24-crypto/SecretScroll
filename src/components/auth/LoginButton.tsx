@@ -6,24 +6,25 @@ import { auth, googleAuthProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { LogIn, Loader2 } from 'lucide-react';
+import { useLocale } from '@/hooks/useLocale';
 
 export function LoginButton() {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLocale();
 
   const handleLogin = async () => {
     setLoading(true);
     try {
       await signInWithPopup(auth, googleAuthProvider);
       toast({
-        title: 'Successfully signed in!',
-        description: 'Welcome to SecretReels.',
+        title: t('toasts.signedInSuccess'),
       });
     } catch (error) {
       console.error('Error signing in with Google: ', error);
       toast({
-        title: 'Authentication failed',
-        description: 'Could not sign you in. Please try again.',
+        title: t('toasts.authFailed'),
+        description: t('toasts.authFailedDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -34,7 +35,7 @@ export function LoginButton() {
   return (
     <Button onClick={handleLogin} disabled={loading}>
       {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <LogIn className="h-4 w-4 mr-2" />}
-      Sign In with Google
+      {t('welcome.continueWithGoogle')}
     </Button>
   );
 }

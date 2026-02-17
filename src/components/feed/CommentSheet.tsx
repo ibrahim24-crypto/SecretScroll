@@ -16,11 +16,13 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { ScrollArea } from '../ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useLocale } from '@/hooks/useLocale';
 
 
 export function CommentSheet({ postId, children }: { postId: string, children: React.ReactNode }) {
   const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  const { t, locale } = useLocale();
   const [comments, setComments] = useState<CommentType[]>([]);
   const [newComment, setNewComment] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -43,18 +45,18 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
     }, (error) => {
         console.error("Error fetching comments:", error);
         toast({
-            title: 'Could not load comments',
+            title: t('toasts.error'),
             description: 'There was an issue fetching the comments for this post. This may be due to a missing database index. Check the console for details.',
             variant: 'destructive',
             duration: 9000
         })
     });
     return () => unsubscribe();
-  }, [postId, toast]);
+  }, [postId, toast, t]);
 
   const handleAddComment = () => {
     if (newComment.trim() === '' || !user) {
-        if (!user) toast({ title: 'Please sign in to comment.', variant: 'destructive' });
+        if (!user) toast({ title: t('comments.signInToComment'), variant: 'destructive' });
         return;
     }
     
@@ -84,7 +86,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
             setNewComment('');
         } catch(e) {
             console.error(e);
-            toast({ title: 'Error', description: 'Could not post comment.', variant: 'destructive' });
+            toast({ title: t('toasts.error'), description: 'Could not post comment.', variant: 'destructive' });
              const permissionError = new FirestorePermissionError({
                 path: 'comments',
                 operation: 'create',
@@ -97,7 +99,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
 
   const handleDeleteComment = (comment: CommentType) => {
     if (!(userProfile?.permissions?.delete_comments || comment.userId === user?.uid)) {
-        toast({ title: 'Permission Denied', description: 'You do not have permission to delete this comment.', variant: 'destructive' });
+        toast({ title: t('toasts.permissionDenied'), description: 'You do not have permission to delete this comment.', variant: 'destructive' });
         return;
     }
     
@@ -119,7 +121,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
         transaction.update(postRef, { commentCount: newCommentCount });
 
     }).then(() => {
-        toast({ title: 'Comment Deleted', description: 'The comment has been removed.' });
+        toast({ title: t('comments.commentDeleted'), description: t('comments.commentDeletedDescription') });
     }).catch(e => {
         console.error("Error deleting comment:", e);
         const permissionError = new FirestorePermissionError({
@@ -146,13 +148,13 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
       <SheetTrigger asChild>{children}</SheetTrigger>
       <SheetContent side="bottom" className="h-[80dvh] flex flex-col p-0">
         <SheetHeader className="p-4 border-b">
-          <SheetTitle>Comments ({comments.length})</SheetTitle>
-          <SheetDescription>A list of comments for the current post.</SheetDescription>
+          <SheetTitle>{t('comments.title', {count: comments.length.toString()})}</SheetTitle>
+          <SheetDescription>{t('comments.description')}</SheetDescription>
         </SheetHeader>
         <ScrollArea className="flex-1">
           <div className="p-4 space-y-6">
             {comments.length === 0 ? (
-                <p className="text-muted-foreground text-center py-8">No comments yet. Be the first to say something!</p>
+                <p className="text-muted-foreground text-center py-8">{t('comments.noComments')}</p>
             ) : (
                 comments.map(comment => (
                     <div key={comment.id} className="flex gap-3 group">
@@ -161,9 +163,9 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
                         </Avatar>
                         <div className="flex-1">
                             <div className="flex items-center gap-2">
-                                <p className="font-semibold text-sm">{comment.authorDisplayName || 'Anonymous'}</p>
+                                <p className="font-semibold text-sm">{comment.authorDisplayName || t('userMenu.anonymousUser')}</p>
                                 <p className="text-xs text-muted-foreground">
-                                    {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : 'just now'}
+                                    {comment.createdAt ? formatDistanceToNow(comment.createdAt.toDate(), { addSuffix: true }) : t('comments.justNow')}
                                 </p>
                             </div>
                             <p className="text-sm text-secondary-foreground">{comment.content}</p>
@@ -177,12 +179,12 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>This will permanently delete the comment.</AlertDialogDescription>
+                                        <AlertDialogTitle>{t('comments.deleteCommentConfirmationTitle')}</AlertDialogTitle>
+                                        <AlertDialogDescription>{t('comments.deleteCommentConfirmationDescription')}</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteComment(comment)}>Delete</AlertDialogAction>
+                                        <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteComment(comment)}>{t('buttons.delete')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -195,7 +197,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
         <div className="p-4 bg-background border-t">
           <div className="flex items-center gap-2">
             <Textarea
-              placeholder="Add a comment..."
+              placeholder={t('comments.addCommentPlaceholder')}
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               onKeyDown={handleKeyDown}

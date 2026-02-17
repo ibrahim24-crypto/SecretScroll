@@ -17,9 +17,11 @@ import { Label } from '@/components/ui/label';
 import { GoogleIcon } from '@/components/icons/GoogleIcon';
 import { AnonymousIcon } from '@/components/icons/AnonymousIcon';
 import Link from 'next/link';
+import { useLocale } from '@/hooks/useLocale';
 
 function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
   const { toast } = useToast();
+  const { t } = useLocale();
   const [loading, setLoading] = useState<'google' | 'anonymous' | null>(null);
   const [name, setName] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -34,19 +36,19 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
     return () => clearTimeout(timer);
   }, []);
 
-  const canProceed = isReady && confirmationText.toLowerCase() === 'i agree';
+  const canProceed = isReady && confirmationText.toLowerCase() === t('welcome.agreePlaceholder').toLowerCase();
 
   const handleGoogleLogin = async () => {
     setLoading('google');
     try {
       await signInWithPopup(auth, googleAuthProvider);
-      toast({ title: 'Successfully signed in!' });
+      toast({ title: t('toasts.signedInSuccess') });
       onComplete();
     } catch (error) {
       console.error('Error signing in with Google: ', error);
       toast({
-        title: 'Authentication failed',
-        description: 'Could not sign you in with Google. Please try again.',
+        title: t('toasts.authFailed'),
+        description: t('toasts.authFailedDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -56,20 +58,20 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
 
   const handleAnonymousLogin = async () => {
     if (!name.trim()) {
-      toast({ title: 'Please enter a name.', variant: 'destructive' });
+      toast({ title: t('toasts.nameRequired'), variant: 'destructive' });
       return;
     }
     setLoading('anonymous');
     try {
       const userCredential = await signInAnonymously(auth);
       await updateProfile(userCredential.user, { displayName: name.trim() });
-      toast({ title: `Welcome, ${name.trim()}!` });
+      toast({ title: t('toasts.welcomeUser', { name: name.trim() }) });
       onComplete();
     } catch (error) {
       console.error('Error signing in anonymously: ', error);
       toast({
-        title: 'Authentication failed',
-        description: 'Could not sign you in. Please try again.',
+        title: t('toasts.authFailed'),
+        description: t('toasts.authFailedDescription'),
         variant: 'destructive',
       });
     } finally {
@@ -86,46 +88,46 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
             <div className="mb-2 rounded-full border-4 border-destructive/20 bg-destructive/10 p-2 text-destructive">
               <AlertTriangle className="h-8 w-8" />
             </div>
-            <CardTitle className="text-2xl font-bold">Disclaimer</CardTitle>
-            <CardDescription>Please read carefully and choose how to proceed.</CardDescription>
+            <CardTitle className="text-2xl font-bold">{t('welcome.disclaimerTitle')}</CardTitle>
+            <CardDescription>{t('welcome.disclaimerText')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-center text-muted-foreground">
-              I am not responsible for any content, including pictures or personal details, that you may find on this platform. The content shared here is not published by me, and I do not endorse it. By entering, you acknowledge and agree to these terms.
+              {t('welcome.disclaimerText')}
             </p>
 
             <div className="space-y-2 pt-4">
                 <Label htmlFor="agreement" className={!canProceed && isReady ? 'text-destructive' : ''}>
-                    Type "I agree" to accept the terms
+                    {t('welcome.agreePrompt')}
                 </Label>
                 <Input
                     id="agreement"
-                    placeholder="I agree"
+                    placeholder={t('welcome.agreePlaceholder')}
                     value={confirmationText}
                     onChange={(e) => setConfirmationText(e.target.value)}
                 />
-                {!isReady && <p className="text-xs text-center text-muted-foreground pt-1 animate-pulse">Please take a moment to read the disclaimer...</p>}
+                {!isReady && <p className="text-xs text-center text-muted-foreground pt-1 animate-pulse">{t('welcome.readingDisclaimer')}</p>}
             </div>
 
             <div className="flex flex-col gap-3 pt-2">
               <Button className="w-full" onClick={handleGoogleLogin} disabled={!!loading || !canProceed}>
                 {loading === 'google' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="mr-2 h-6 w-6" />}
-                Continue with Google
+                {t('welcome.continueWithGoogle')}
               </Button>
               <Button variant="secondary" className="w-full" onClick={() => setDialogOpen(true)} disabled={!!loading || !canProceed}>
                 {loading === 'anonymous' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <AnonymousIcon className="mr-2 h-6 w-6" />}
-                Continue Anonymously
+                {t('welcome.continueAnonymously')}
               </Button>
             </div>
           </CardContent>
           <CardFooter className="flex-col items-center justify-center gap-2 pt-4 border-t">
             <div className="flex justify-center gap-4 text-xs text-muted-foreground">
-                <Link href="/about" className="hover:text-primary transition-colors">About</Link>
-                <Link href="/terms" className="hover:text-primary transition-colors">Terms of Use</Link>
-                <Link href="/copyright" className="hover:text-primary transition-colors">Copyright</Link>
+                <Link href="/about" className="hover:text-primary transition-colors">{t('userMenu.about')}</Link>
+                <Link href="/terms" className="hover:text-primary transition-colors">{t('userMenu.terms')}</Link>
+                <Link href="/copyright" className="hover:text-primary transition-colors">{t('userMenu.copyright')}</Link>
             </div>
             <p className="text-xs text-muted-foreground">
-                © 2024 SecretReels. All Rights Reserved.
+                © 2024 {t('appName')}. All Rights Reserved.
             </p>
           </CardFooter>
         </Card>
@@ -133,15 +135,15 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Continue Anonymously</DialogTitle>
+            <DialogTitle>{t('welcome.anonymousDialogTitle')}</DialogTitle>
             <DialogDescription>
-              Please enter a display name. This name will only be visible to administrators.
+              {t('welcome.anonymousDialogDescription')}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Input
               id="name"
-              placeholder="Your display name"
+              placeholder={t('welcome.displayNamePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
@@ -151,10 +153,10 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
             />
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setDialogOpen(false)}>{t('buttons.cancel')}</Button>
             <Button onClick={handleAnonymousLogin} disabled={loading === 'anonymous'}>
               {loading === 'anonymous' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Continue
+              {t('buttons.continue')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -167,6 +169,7 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
 export default function HomePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { t } = useLocale();
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -217,7 +220,7 @@ export default function HomePage() {
                    block md:hidden transition-transform hover:scale-110 active:scale-100"
       >
         <Plus className="h-8 w-8" />
-        <span className="sr-only">Create Post</span>
+        <span className="sr-only">{t('header.createPost')}</span>
       </button>
     </>
   );
