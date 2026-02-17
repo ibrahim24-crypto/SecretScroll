@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await cloudinary.uploader.upload(image, {
-      folder: 'secretreels_uploads',
+      folder: 'secretscroll_uploads',
     });
     return NextResponse.json({ url: result.secure_url });
   } catch (error) {

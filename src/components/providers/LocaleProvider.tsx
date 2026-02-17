@@ -45,7 +45,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('en');
 
   useEffect(() => {
-    const storedLocale = localStorage.getItem('secretreels-locale') as Locale;
+    const storedLocale = localStorage.getItem('secretscroll-locale') as Locale;
     if (storedLocale && ['en', 'fr', 'ar'].includes(storedLocale)) {
       setLocaleState(storedLocale);
     }
@@ -58,7 +58,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem('secretreels-locale', newLocale);
+    localStorage.setItem('secretscroll-locale', newLocale);
   }, []);
 
   const t = useCallback((key: string, values?: Record<string, string>): string => {

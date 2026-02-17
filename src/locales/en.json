@@ -1,5 +1,5 @@
 {
-  "appName": "SecretReels",
+  "appName": "Secret Scroll",
   "welcome": {
     "disclaimerTitle": "Disclaimer",
     "disclaimerText": "I am not responsible for any content, including pictures or personal details, that you may find on this platform. The content shared here is not published by me, and I do not endorse it. By entering, you acknowledge and agree to these terms.",
@@ -157,7 +157,7 @@
     "signInToComment": "Please sign in to comment."
   },
   "feed": {
-    "welcomeTitle": "Welcome to SecretReels",
+    "welcomeTitle": "Welcome to Secret Scroll",
     "welcomeSubtitle": "Swipe up to start exploring.",
     "getStartedPrompt": "Or create an account to share your own story.",
     "getStartedButton": "Get Started",
@@ -168,23 +168,23 @@
     "endOfFeedSubtitle": "Check back later for new posts!"
   },
   "aboutPage": {
-    "title": "About SecretReels",
+    "title": "About Secret Scroll",
     "subtitle": "Uncover secrets, share truths.",
-    "p1": "SecretReels is a platform for anonymous expression. We believe in the power of sharing stories, thoughts, and confessions without the fear of judgment. Our community is built on trust, respect, and the shared human experience.",
+    "p1": "Secret Scroll is a platform for anonymous expression. We believe in the power of sharing stories, thoughts, and confessions without the fear of judgment. Our community is built on trust, respect, and the shared human experience.",
     "p2": "Whether you have a funny anecdote, a deep reflection, a random thought, or need some advice, this is your space to share it with the world, protected by anonymity.",
     "p3": "Our mission is to create a safe and open environment where every voice can be heard."
   },
   "copyrightPage": {
     "title": "Copyright Policy",
     "subtitle": "Respecting intellectual property.",
-    "p1": "SecretReels respects the intellectual property rights of others and expects its users to do the same. It is our policy, in appropriate circumstances and at our discretion, to disable and/or terminate the accounts of users who repeatedly infringe the copyrights or other intellectual property rights of others.",
+    "p1": "Secret Scroll respects the intellectual property rights of others and expects its users to do the same. It is our policy, in appropriate circumstances and at our discretion, to disable and/or terminate the accounts of users who repeatedly infringe the copyrights or other intellectual property rights of others.",
     "p2": "If you are a copyright owner, or are authorized to act on behalf of one, or authorized to act under any exclusive right under copyright, please report alleged copyright infringements taking place on or through the Site by completing a DMCA Notice of Alleged Infringement and delivering it to our designated Copyright Agent.",
-    "p3": "Upon receipt of the Notice as described below, SecretReels will take whatever action, in its sole discretion, it deems appropriate, including removal of the challenged material from the Site."
+    "p3": "Upon receipt of the Notice as described below, Secret Scroll will take whatever action, in its sole discretion, it deems appropriate, including removal of the challenged material from the Site."
   },
   "termsPage": {
     "title": "Terms of Use",
     "subtitle": "Please read our terms of use carefully.",
-    "p1": "By accessing or using SecretReels, you agree to be bound by these terms of use.",
+    "p1": "By accessing or using Secret Scroll, you agree to be bound by these terms of use.",
     "h1": "1. Content Responsibility",
     "p2": "You are solely responsible for the content you post. You agree not to post any content that is illegal, defamatory, hateful, or that infringes on any third-party rights, including intellectual property and privacy rights. We are not responsible for any content, including pictures or personal details, that you may find on this platform. The content shared here is not published by us, and we do not endorse it.",
     "h2": "2. User Conduct",

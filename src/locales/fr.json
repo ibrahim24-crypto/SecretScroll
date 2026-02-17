@@ -1,5 +1,5 @@
 {
-  "appName": "SecretReels",
+  "appName": "Secret Scroll",
   "welcome": {
     "disclaimerTitle": "Avertissement",
     "disclaimerText": "Je ne suis pas responsable du contenu, y compris les photos ou les détails personnels, que vous pourriez trouver sur cette plateforme. Le contenu partagé ici n'est pas publié par moi, et je ne l'approuve pas. En entrant, vous reconnaissez et acceptez ces conditions.",
@@ -157,7 +157,7 @@
     "signInToComment": "Veuillez vous connecter pour commenter."
   },
   "feed": {
-    "welcomeTitle": "Bienvenue sur SecretReels",
+    "welcomeTitle": "Bienvenue sur Secret Scroll",
     "welcomeSubtitle": "Glissez vers le haut pour commencer à explorer.",
     "getStartedPrompt": "Ou créez un compte pour partager votre propre histoire.",
     "getStartedButton": "Commencer",
@@ -168,23 +168,23 @@
     "endOfFeedSubtitle": "Revenez plus tard pour de nouveaux posts !"
   },
   "aboutPage": {
-    "title": "À propos de SecretReels",
+    "title": "À propos de Secret Scroll",
     "subtitle": "Découvrez des secrets, partagez des vérités.",
-    "p1": "SecretReels est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
+    "p1": "Secret Scroll est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
     "p2": "Que vous ayez une anecdote amusante, une réflexion profonde, une pensée aléatoire ou besoin d'un conseil, c'est votre espace pour le partager avec le monde, protégé par l'anonymat.",
     "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue."
   },
   "copyrightPage": {
     "title": "Politique de droits d'auteur",
     "subtitle": "Respect de la propriété intellectuelle.",
-    "p1": "SecretReels respecte les droits de propriété intellectuelle d'autrui et attend de ses utilisateurs qu'ils fassent de même. Notre politique est, dans des circonstances appropriées et à notre discrétion, de désactiver et/ou de résilier les comptes des utilisateurs qui enfreignent de manière répétée les droits d'auteur ou autres droits de propriété intellectuelle d'autrui.",
+    "p1": "Secret Scroll respecte les droits de propriété intellectuelle d'autrui et attend de ses utilisateurs qu'ils fassent de même. Notre politique est, dans des circonstances appropriées et à notre discrétion, de désactiver et/ou de résilier les comptes des utilisateurs qui enfreignent de manière répétée les droits d'auteur ou autres droits de propriété intellectuelle d'autrui.",
     "p2": "Si vous êtes titulaire de droits d'auteur, ou autorisé à agir au nom d'un titulaire, ou autorisé à agir en vertu d'un droit exclusif en vertu du droit d'auteur, veuillez signaler les violations présumées du droit d'auteur ayant lieu sur ou via le Site en remplissant un avis DMCA de violation présumée et en le remettant à notre agent des droits d'auteur désigné.",
-    "p3": "Dès réception de l'avis tel que décrit ci-dessous, SecretReels prendra toute mesure, à sa seule discrétion, qu'elle jugera appropriée, y compris le retrait du matériel contesté du Site."
+    "p3": "Dès réception de l'avis tel que décrit ci-dessous, Secret Scroll prendra toute mesure, à sa seule discrétion, qu'elle jugera appropriée, y compris le retrait du matériel contesté du Site."
   },
   "termsPage": {
     "title": "Conditions d'utilisation",
     "subtitle": "Veuillez lire attentivement nos conditions d'utilisation.",
-    "p1": "En accédant ou en utilisant SecretReels, vous acceptez d'être lié par ces conditions d'utilisation.",
+    "p1": "En accédant ou en utilisant Secret Scroll, vous acceptez d'être lié par ces conditions d'utilisation.",
     "h1": "1. Responsabilité du contenu",
     "p2": "Vous êtes seul responsable du contenu que vous publiez. Vous vous engagez à ne pas publier de contenu illégal, diffamatoire, haineux ou qui enfreint les droits de tiers, y compris les droits de propriété intellectuelle и de confidentialité. Nous ne sommes pas responsables du contenu, y compris les images ou les détails personnels, que vous pourriez trouver sur cette plateforme. Le contenu partagé ici n'est pas publié par nous et nous ne l'approuvons pas.",
     "h2": "2. Conduite de l'utilisateur",

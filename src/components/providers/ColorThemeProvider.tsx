@@ -26,7 +26,7 @@ const ThemeColorContext = createContext<ThemeColorProviderState>(initialState);
 export function ColorThemeProvider({
   children,
   defaultTheme = 'purple',
-  storageKey = 'secretreels-color-theme',
+  storageKey = 'secretscroll-color-theme',
 }: ThemeColorProviderProps) {
   const [theme, setTheme] = useState<ThemeColor>(
     () => ((typeof window !== 'undefined' && localStorage.getItem(storageKey)) as ThemeColor) || defaultTheme

@@ -8,7 +8,7 @@ import { ColorThemeProvider } from '@/components/providers/ColorThemeProvider';
 import { LocaleProvider } from '@/components/providers/LocaleProvider';
 
 export const metadata: Metadata = {
-  title: 'SecretReels',
+  title: 'Secret Scroll',
   description: 'Uncover secrets, share truths.',
 };
 
