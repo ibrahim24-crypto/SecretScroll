@@ -11,7 +11,7 @@ service cloud.firestore {
       return request.auth != null && 
              request.auth.token.email == 'ibrahimezzine09@gmail.com';
     }
-  
+
     function getPermissions() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
@@ -42,14 +42,17 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
+      // Public can read approved posts. Admins and authors can read their own posts.
       allow read: if resource.data.status == 'approved' || isAdmin() || isOwner(resource.data.authorUid);
+      
       allow create: if request.auth != null;
+
       allow update: if (
-        // Any authenticated user can vote or update comment count
+        // Any authenticated user can vote or update comment count on an approved post
         request.auth != null && resource.data.status == 'approved' &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
       ) || (
-        // Admins can approve/reject posts
+        // Admins can manage posts (approve/reject/edit images)
         isAdmin() && hasPermission('approve_pictures') &&
         request.resource.data.diff(resource.data).hasAny(['status', 'images', 'hasPendingImages', 'updatedAt'])
       ) || (
@@ -58,6 +61,7 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
       )
       || isSuperAdmin();
+
       allow delete: if isOwner(resource.data.authorUid) || isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
     }
     
@@ -74,16 +78,14 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId) || isSuperAdmin() || (isAdmin() && hasPermission('delete_comments'));
     }
 
-    // This is the fix: Allow any authenticated user to READ settings,
-    // but only admins with specific permissions can WRITE them.
-    match /settings/config {
+    match /settings/{document} {
+      // Any authenticated user can READ settings (required for client-side checks)
       allow read: if request.auth != null;
-      allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
-    }
-
-    match /settings/protectedNames {
-      allow read: if request.auth != null;
-      allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_protected_names'));
+      // Only specific admins can WRITE settings
+      allow write: if isSuperAdmin() || (isAdmin() && (
+        (document == 'config' && hasPermission('manage_forbidden_words')) ||
+        (document == 'protectedNames' && hasPermission('manage_protected_names'))
+      ));
     }
   }
 }
