@@ -92,6 +92,37 @@ export const isSocialPlatform = (platform: string): boolean => {
     return false;
 };
 
+export const getSocialUsername = (platform: string, value: string): string => {
+    // If the value doesn't look like a URL at all, return it.
+    if (!value.includes('/') && !value.includes('?') && !value.includes('.')) {
+        return value;
+    }
+
+    try {
+        // Ensure there's a protocol for the URL constructor to work reliably
+        const fullUrl = value.startsWith('http') ? value : `https://${value}`;
+        const url = new URL(fullUrl);
+        const pathParts = url.pathname.split('/').filter(p => p.length > 0);
+
+        if (pathParts.length > 0) {
+            // For most platforms like instagram, twitter, github, the username is the first path segment.
+            return pathParts[0];
+        }
+    } catch (e) {
+        // This will catch invalid URLs. We can fall back to a regex.
+    }
+    
+    // Regex fallback for cases where URL constructor fails or for non-standard URLs.
+    // It looks for a common domain pattern, followed by a slash, and captures the next segment.
+    const match = value.match(/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\/([^\/?#&]+)/);
+    if (match && match[1]) {
+        return match[1];
+    }
+    
+    return value; // Return original value as the last resort.
+};
+
+
 export const getSocialLink = (platform: string, value: string): string => {
     let key = platform.toLowerCase() as SocialPlatformKey;
     let social = socialPlatforms[key];
@@ -117,12 +148,13 @@ export const getSocialLink = (platform: string, value: string): string => {
       return `https://${value}`;
     }
     
-    // For WhatsApp, remove non-numeric characters
+    // For WhatsApp, remove non-numeric characters from the raw value
     if (key === 'whatsapp') {
         const numericValue = value.replace(/[^0-9]/g, '');
         return `${social.baseUrl}${numericValue}`;
     }
 
-    // For other platforms, just append the username/value.
-    return `${social.baseUrl}${value}`;
+    // For other platforms, extract the username from the value and build the correct link.
+    const username = getSocialUsername(platform, value);
+    return `${social.baseUrl}${username}`;
 }

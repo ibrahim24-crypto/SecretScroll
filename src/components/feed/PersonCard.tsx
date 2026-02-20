@@ -17,7 +17,7 @@ import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { CommentSheet } from './CommentSheet';
-import { getSocialPlatformIcon, getSocialLink, isSocialPlatform } from '@/lib/socials';
+import { getSocialPlatformIcon, getSocialLink, isSocialPlatform, getSocialUsername } from '@/lib/socials';
 import NextLink from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -37,12 +37,13 @@ const categoryIcons = {
 function SocialLink({ field }: { field: { label: string, value: string } }) {
     const Icon = getSocialPlatformIcon(field.label);
     const href = getSocialLink(field.label, field.value);
+    const username = getSocialUsername(field.label, field.value);
 
     return (
         <Button asChild variant="ghost" size="sm" className="flex items-center gap-2 text-white hover:text-white hover:bg-white/10 rounded-full h-8 px-3">
             <NextLink href={href} target="_blank" rel="noopener noreferrer">
                 <Icon className="h-4 w-4" />
-                <span className="text-xs">{field.value}</span>
+                <span className="text-xs">{username}</span>
             </NextLink>
         </Button>
     )
@@ -369,11 +370,12 @@ export function PostCard({ post: initialPost }: PostCardProps) {
                     {post.customFields.filter(f => isSocialPlatform(f.label)).map((field, index) => {
                         const Icon = getSocialPlatformIcon(field.label);
                         const href = getSocialLink(field.label, field.value);
+                        const username = getSocialUsername(field.label, field.value);
                         return (
                              <Button asChild key={index} variant="outline" size="sm" className="gap-2">
                                 <NextLink href={href} target="_blank" rel="noopener noreferrer">
                                     <Icon className="h-4 w-4" />
-                                    <span>{field.value}</span>
+                                    <span>{username}</span>
                                 </NextLink>
                             </Button>
                         )
