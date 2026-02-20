@@ -417,8 +417,10 @@ function UserManager() {
     }, [toast]);
 
     useEffect(() => {
-        fetchUsers();
-    }, [fetchUsers]);
+        if(userProfile?.role === 'admin') {
+            fetchUsers();
+        }
+    }, [fetchUsers, userProfile]);
     
     const handleDeleteUser = (userToDelete: UserProfile) => {
         if (!userProfile?.permissions?.delete_users) {
@@ -724,15 +726,17 @@ function SettingsManager() {
                         Add Word
                     </Button>
                 </div>
-                <div className="border rounded-md p-4 space-y-2 h-64 overflow-y-auto">
+                <div className="border rounded-md p-4 h-64 overflow-y-auto">
                     {settings.forbiddenWords.length === 0 ? (
-                        <p className="text-muted-foreground text-center">No forbidden words yet.</p>
+                        <div className="flex h-full items-center justify-center">
+                            <p className="text-muted-foreground">No forbidden words yet.</p>
+                        </div>
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="flex items-center gap-1 text-base py-1">
-                                    {word}
-                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="rounded-full hover:bg-muted-foreground/20 p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5">
+                                    <span>{word}</span>
+                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex-shrink-0 rounded-full hover:bg-muted p-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>
@@ -837,15 +841,17 @@ function ProtectedNamesManager() {
                         Add Name
                     </Button>
                 </div>
-                <div className="border rounded-md p-4 space-y-2 h-64 overflow-y-auto">
+                <div className="border rounded-md p-4 h-64 overflow-y-auto">
                     {protectedNames.length === 0 ? (
-                        <p className="text-muted-foreground text-center">No protected names yet.</p>
+                        <div className="flex h-full items-center justify-center">
+                            <p className="text-muted-foreground">No protected names yet.</p>
+                        </div>
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="flex items-center gap-1 text-base py-1">
-                                    {name}
-                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="rounded-full hover:bg-muted-foreground/20 p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5">
+                                    <span>{name}</span>
+                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex-shrink-0 rounded-full hover:bg-muted p-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>
