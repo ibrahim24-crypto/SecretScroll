@@ -73,7 +73,10 @@ service cloud.firestore {
     }
     
     match /votes/{voteId} {
-      allow read, write: if isOwner(request.resource.data.userId);
+      allow get: if isOwner(resource.data.userId);
+      allow list: if request.auth.uid != null;
+      allow create: if isOwner(request.resource.data.userId);
+      allow update, delete: if isOwner(resource.data.userId);
     }
 
     match /comments/{commentId} {
