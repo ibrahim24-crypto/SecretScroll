@@ -8,7 +8,7 @@ import { Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { signInWithPopup, signInAnonymously, updateProfile } from 'firebase/auth';
+import { signInWithPopup, signInAnonymously, updateProfile, signInWithRedirect } from 'firebase/auth';
 import { auth, googleAuthProvider, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -46,18 +46,24 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
       toast({ title: t('toasts.signedInSuccess') });
       onComplete();
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        console.log('Sign-in popup closed by user.');
-      } else {
-        console.error('Error signing in with Google: ', error);
-        toast({
-          title: t('toasts.authFailed'),
-          description: t('toasts.authFailedDescription'),
-          variant: 'destructive',
-        });
-      }
+        if (error.code === 'auth/popup-blocked') {
+            toast({
+                title: t('toasts.popupBlockedTitle'),
+                description: t('toasts.popupBlockedDescription'),
+                variant: 'destructive',
+            });
+        } else if (error.code === 'auth/popup-closed-by-user') {
+            console.log('Sign-in popup closed by user.');
+        } else {
+            console.error('Error signing in with Google: ', error);
+            toast({
+                title: t('toasts.authFailed'),
+                description: t('toasts.authFailedDescription'),
+                variant: 'destructive',
+            });
+        }
     } finally {
-      setLoading(null);
+        setLoading(null);
     }
   };
 
@@ -113,10 +119,6 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
             <CardDescription>{t('welcome.disclaimerText')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              {t('welcome.disclaimerText')}
-            </p>
-
             <div className="space-y-2 pt-4">
                 <Label htmlFor="agreement" className={!canProceed && isReady ? 'text-destructive' : ''}>
                     {t('welcome.agreePrompt')}

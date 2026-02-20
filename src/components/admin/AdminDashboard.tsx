@@ -29,6 +29,7 @@ import { Label } from '../ui/label';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { useLocale } from '@/hooks/useLocale';
 
 const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }[] = [
     { id: 'approve_pictures', label: 'Picture Approval', description: 'Can approve or reject user-submitted pictures.' },
@@ -46,6 +47,7 @@ const permissionsSchema = z.object({
 
 function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; onUpdate: () => void; children: React.ReactNode }) {
   const { toast } = useToast();
+  const { t } = useLocale();
   const [isPending, startTransition] = useTransition();
 
   const form = useForm({
@@ -63,7 +65,7 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
 
       try {
         await updateDoc(doc(db, 'users', admin.uid), { permissions: newPermissions });
-        toast({ title: 'Success!', description: `${admin.email}'s permissions have been updated.` });
+        toast({ title: t('toasts.success'), description: t('admin.permissionsUpdated', { email: admin.email || 'user' }) });
         onUpdate(); // Refresh admin list in parent
       } catch (error) {
         const permissionError = new FirestorePermissionError({ path: `users/${admin.uid}`, operation: 'update' });
@@ -77,8 +79,8 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Manage Permissions for {admin.displayName}</DialogTitle>
-          <DialogDescription>Select the permissions to grant to this admin.</DialogDescription>
+          <DialogTitle>{t('admin.managePermissionsTitle', { name: admin.displayName || 'user' })}</DialogTitle>
+          <DialogDescription>{t('admin.managePermissionsDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -109,10 +111,10 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
               )}
             />
             <DialogFooter>
-                <DialogClose asChild><Button variant="ghost">Cancel</Button></DialogClose>
+                <DialogClose asChild><Button variant="ghost">{t('buttons.cancel')}</Button></DialogClose>
                 <Button type="submit" disabled={isPending}>
                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Save Permissions
+                    {t('admin.savePermissions')}
                 </Button>
             </DialogFooter>
           </form>
@@ -131,6 +133,7 @@ function PostManager() {
     const [filter, setFilter] = useState('');
     const [showFlagged, setShowFlagged] = useState(false);
     const { toast } = useToast();
+    const { t } = useLocale();
     const { userProfile } = useAuth();
 
     const fetchPosts = useCallback(async () => {
@@ -143,11 +146,11 @@ function PostManager() {
             setPosts(postsData);
         } catch (error) {
            console.error("Error fetching posts:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts.', variant: 'destructive' });
+           toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive' });
         } finally {
           setLoading(false);
         }
-    }, [toast]);
+    }, [toast, t]);
 
     useEffect(() => {
       fetchPosts();
@@ -155,7 +158,7 @@ function PostManager() {
 
     const handleDeletePost = (postId: string) => {
         if (!userProfile?.permissions?.delete_posts) {
-            toast({ title: 'Permission Denied', variant: 'destructive'});
+            toast({ title: t('toasts.permissionDenied'), variant: 'destructive'});
             return;
         }
         setUpdating(prev => ({ ...prev, [postId]: true }));
@@ -164,7 +167,7 @@ function PostManager() {
         deleteDoc(postRef)
           .then(() => {
             setPosts(prev => prev.filter(p => p.id !== postId));
-            toast({ title: 'Success', description: `Post has been deleted.` });
+            toast({ title: t('toasts.success'), description: t('toasts.postDeleted') });
           })
           .catch((error) => {
             const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'delete' });
@@ -185,11 +188,11 @@ function PostManager() {
                 <CardContent className="p-4 flex flex-col md:flex-row gap-4">
                     <div className="relative w-full">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search posts..." className="pl-8" value={filter} onChange={(e) => setFilter(e.target.value)} />
+                        <Input placeholder={t('admin.searchPlaceholder')} className="pl-8" value={filter} onChange={(e) => setFilter(e.target.value)} />
                     </div>
                     <div className="flex items-center space-x-2">
                         <Switch id="show-flagged" checked={showFlagged} onCheckedChange={setShowFlagged} />
-                        <Label htmlFor="show-flagged">Show Flagged Only</Label>
+                        <Label htmlFor="show-flagged">{t('admin.showFlaggedOnly')}</Label>
                     </div>
                 </CardContent>
             </Card>
@@ -201,14 +204,14 @@ function PostManager() {
                         <CardHeader>
                             <CardTitle className="flex justify-between items-start">
                                 {post.title}
-                                {post.isFlagged && <Badge variant="destructive">Flagged</Badge>}
+                                {post.isFlagged && <Badge variant="destructive">{t('admin.flagged')}</Badge>}
                             </CardTitle>
                              <CardDescription className="flex items-center gap-2 text-xs">
                                 <Avatar className="h-5 w-5">
                                     <AvatarImage src={undefined} />
                                     <AvatarFallback>{post.authorDisplayName?.charAt(0) || 'A'}</AvatarFallback>
                                 </Avatar>
-                                <span>{post.authorDisplayName || 'Anonymous'}</span>
+                                <span>{post.authorDisplayName || t('userMenu.anonymousUser')}</span>
                                 <span>•</span>
                                 <span>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}</span>
                             </CardDescription>
@@ -222,12 +225,12 @@ function PostManager() {
                                 </Button></AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>This will permanently delete the post.</AlertDialogDescription>
+                                        <AlertDialogTitle>{t('admin.deletePostConfirmationTitle')}</AlertDialogTitle>
+                                        <AlertDialogDescription>{t('admin.deletePostConfirmationDescription')}</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeletePost(post.id)}>{updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}</AlertDialogAction>
+                                    <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeletePost(post.id)}>{updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : t('buttons.delete')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                                 </AlertDialog>
@@ -236,7 +239,7 @@ function PostManager() {
                     </Card>
                 )})}
             </div>
-             {!loading && filteredPosts.length === 0 && <p className="text-center text-muted-foreground py-8">No posts found.</p>}
+             {!loading && filteredPosts.length === 0 && <p className="text-center text-muted-foreground py-8">{t('admin.noPostsFound')}</p>}
         </div>
     );
 }
@@ -248,6 +251,7 @@ function ImageApprovalQueue() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Record<string, boolean>>({});
     const { toast } = useToast();
+    const { t } = useLocale();
     const { userProfile } = useAuth();
 
     const fetchPendingImages = useCallback(async () => {
@@ -260,11 +264,11 @@ function ImageApprovalQueue() {
             setPosts(postsData);
         } catch (error: any) {
            console.error("Error fetching posts for approval:", error);
-           toast({ title: 'Error', description: 'Could not fetch posts for approval. You may need to create a Firestore index.', variant: 'destructive', duration: 10000 });
+           toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive', duration: 10000 });
         } finally {
           setLoading(false);
         }
-    }, [toast]);
+    }, [toast, t]);
     
     useEffect(() => {
       fetchPendingImages();
@@ -272,7 +276,7 @@ function ImageApprovalQueue() {
 
     const handleImageDecision = (postId: string, imageUrl: string, decision: 'approved' | 'rejected') => {
         if (!userProfile?.permissions?.approve_pictures) {
-            toast({ title: 'Permission Denied', variant: 'destructive'});
+            toast({ title: t('toasts.permissionDenied'), variant: 'destructive'});
             return;
         }
         setUpdating(prev => ({ ...prev, [imageUrl]: true }));
@@ -294,7 +298,7 @@ function ImageApprovalQueue() {
             transaction.update(postRef, { images: newImages, hasPendingImages: hasPending });
             return hasPending;
         }).then((hasPending) => {
-            toast({ title: 'Success', description: `Image has been ${decision}.` });
+            toast({ title: t('toasts.success'), description: t('admin.imageDecisionSuccess', { decision }) });
             
             setPosts(prevPosts => {
                 const newPosts = prevPosts.map(p => {
@@ -322,7 +326,7 @@ function ImageApprovalQueue() {
     }
 
     if (posts.length === 0) {
-        return <p className="text-muted-foreground text-center py-12">No images are pending review.</p>;
+        return <p className="text-muted-foreground text-center py-12">{t('admin.noImagesPending')}</p>;
     }
 
     return (
@@ -335,7 +339,7 @@ function ImageApprovalQueue() {
                     <Card key={post.id}>
                         <CardHeader>
                             <CardTitle>{post.title}</CardTitle>
-                            <CardDescription>{pendingImages.length} image(s) to review for this post.</CardDescription>
+                            <CardDescription>{t('admin.imagesToReview', { count: pendingImages.length.toString() })}</CardDescription>
                         </CardHeader>
                         <CardContent className="grid grid-cols-2 lg:grid-cols-3 gap-2">
                            {pendingImages.map((image, index) => (
@@ -344,11 +348,11 @@ function ImageApprovalQueue() {
                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                        <Button size="icon" variant="destructive" onClick={() => handleImageDecision(post.id, image.url, 'rejected')} disabled={updating[image.url]}>
                                            {updating[image.url] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Ban className="h-4 w-4" />}
-                                           <span className="sr-only">Reject</span>
+                                           <span className="sr-only">{t('admin.reject')}</span>
                                        </Button>
                                        <Button size="icon" variant="default" onClick={() => handleImageDecision(post.id, image.url, 'approved')} disabled={updating[image.url]}>
                                           {updating[image.url] ? <Loader2 className="h-4 w-4 animate-spin"/> : <Check className="h-4 w-4" />}
-                                          <span className="sr-only">Approve</span>
+                                          <span className="sr-only">{t('admin.approve')}</span>
                                        </Button>
                                    </div>
                                </div>
@@ -368,6 +372,7 @@ function UserManager() {
     const [loading, setLoading] = useState(true);
     const [deletingUser, setDeletingUser] = useState<string | null>(null);
     const { toast } = useToast();
+    const { t } = useLocale();
     const { user: currentUser, userProfile } = useAuth();
 
 
@@ -382,16 +387,16 @@ function UserManager() {
         } catch (error: any) {
            console.error("Error fetching users:", error);
            if (error.code === 'permission-denied') {
-             toast({ title: 'Permission Denied', description: 'You do not have permission to view users.', variant: 'destructive' });
+             toast({ title: t('toasts.permissionDenied'), description: 'You do not have permission to view users.', variant: 'destructive' });
            } else if (error.code === 'failed-precondition') {
-             toast({ title: 'Missing Index', description: 'A database index is required to view users. Please check the console for a creation link.', variant: 'destructive', duration: 10000 });
+             toast({ title: t('toasts.missingIndex'), description: 'A database index is required to view users. Please check the console for a creation link.', variant: 'destructive', duration: 10000 });
            } else {
-             toast({ title: 'Error', description: 'Could not fetch users.', variant: 'destructive' });
+             toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive' });
            }
         } finally {
           setLoading(false);
         }
-    }, [toast]);
+    }, [toast, t]);
 
     useEffect(() => {
         if(userProfile?.role === 'admin') {
@@ -401,11 +406,11 @@ function UserManager() {
     
     const handleDeleteUser = (userToDelete: UserProfile) => {
         if (!userProfile?.permissions?.delete_users) {
-            toast({ title: 'Permission Denied', description: 'You do not have permission to delete users.', variant: 'destructive' });
+            toast({ title: t('toasts.permissionDenied'), description: 'You do not have permission to delete users.', variant: 'destructive' });
             return;
         }
         if (userToDelete.uid === currentUser?.uid) {
-            toast({ title: "Cannot delete yourself", variant: "destructive" });
+            toast({ title: t('admin.cannotDeleteSelf'), variant: "destructive" });
             return;
         }
 
@@ -415,7 +420,7 @@ function UserManager() {
         deleteDoc(userRef)
           .then(() => {
             setUsers(prev => prev.filter(u => u.uid !== userToDelete.uid));
-            toast({ title: 'Success', description: `User ${userToDelete.displayName || userToDelete.email} has been deleted.` });
+            toast({ title: t('toasts.success'), description: t('admin.userDeleted', { name: userToDelete.displayName || userToDelete.email || 'user' }) });
           })
           .catch((error) => {
             const permissionError = new FirestorePermissionError({ path: userRef.path, operation: 'delete' });
@@ -441,14 +446,14 @@ function UserManager() {
                             <AvatarFallback>{user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <CardTitle className="text-base">{user.displayName || 'Anonymous'}</CardTitle>
-                            <CardDescription className="text-xs break-all">{user.email || 'No Email'}</CardDescription>
+                            <CardTitle className="text-base">{user.displayName || t('userMenu.anonymousUser')}</CardTitle>
+                            <CardDescription className="text-xs break-all">{user.email || t('admin.noEmail')}</CardDescription>
                         </div>
-                         {user.role === 'admin' && <Badge variant="secondary">Admin</Badge>}
+                         {user.role === 'admin' && <Badge variant="secondary">{t('header.admin')}</Badge>}
                     </CardHeader>
                     <CardFooter className="p-4 pt-0 flex justify-between items-center">
                          <p className="text-xs text-muted-foreground">
-                            Joined: {user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A'}
+                            {t('admin.joined', { date: user.createdAt ? formatDistanceToNow(user.createdAt.toDate(), { addSuffix: true }) : 'N/A' })}
                         </p>
                         {userProfile?.permissions?.delete_users && currentUser?.uid !== user.uid && (
                             <AlertDialog>
@@ -459,14 +464,14 @@ function UserManager() {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                        <AlertDialogTitle>{t('admin.deleteUserConfirmationTitle')}</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This will permanently delete the user account. This action cannot be undone.
+                                            {t('admin.deleteUserConfirmationDescription')}
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteUser(user)}>Delete</AlertDialogAction>
+                                        <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteUser(user)}>{t('buttons.delete')}</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
@@ -483,6 +488,7 @@ function UserManager() {
 function AdminManager() {
     const { user, userProfile } = useAuth();
     const { toast } = useToast();
+    const { t } = useLocale();
     const [admins, setAdmins] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
@@ -497,11 +503,11 @@ function AdminManager() {
             setAdmins(querySnapshot.docs.map(d => ({...d.data(), uid: d.id } as UserProfile)));
         } catch (e: any) {
             console.error("Error fetching admins. This might be a missing Firestore index for the 'users' collection. Please check your browser's developer console for an index creation link.", e);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch admins. Check console.', duration: 8000});
+            toast({ variant: 'destructive', title: t('toasts.error'), description: t('toasts.fetchError'), duration: 8000});
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, t]);
 
     useEffect(() => { fetchAdmins() }, [fetchAdmins]);
 
@@ -517,14 +523,14 @@ function AdminManager() {
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    toast({ title: 'Error', description: 'User with that email does not exist.', variant: 'destructive'});
+                    toast({ title: t('toasts.error'), description: t('admin.userNotFound'), variant: 'destructive'});
                     return;
                 }
                 
                 const userDoc = querySnapshot.docs[0];
                 await updateDoc(doc(db, 'users', userDoc.id), { role: 'admin' });
                 
-                toast({ title: 'Success!', description: `${data.email} has been made an admin.` });
+                toast({ title: t('toasts.success'), description: t('admin.adminAdded', { email: data.email }) });
                 fetchAdmins(); // Refresh admin list
                 form.reset();
 
@@ -538,7 +544,7 @@ function AdminManager() {
         startTransition(async () => {
             try {
                 await updateDoc(doc(db, 'users', adminId), { role: 'user', permissions: {} });
-                toast({ title: 'Success!', description: `Admin privileges have been revoked.` });
+                toast({ title: t('toasts.success'), description: t('admin.adminRevoked') });
                 fetchAdmins();
             } catch (error) {
                 const permissionError = new FirestorePermissionError({ path: `users/${adminId}`, operation: 'update' });
@@ -551,22 +557,22 @@ function AdminManager() {
         <div className="grid md:grid-cols-2 gap-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>Add New Admin</CardTitle>
-                    <CardDescription>Enter a user's email to grant them admin privileges.</CardDescription>
+                    <CardTitle>{t('admin.addNewAdminTitle')}</CardTitle>
+                    <CardDescription>{t('admin.addNewAdminDescription')}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="flex items-end gap-2">
                             <FormField control={form.control} name="email" render={({ field }) => (
-                                <FormItem className="flex-grow"><FormLabel>User Email</FormLabel><FormControl><Input placeholder="user@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                                <FormItem className="flex-grow"><FormLabel>{t('admin.userEmailLabel')}</FormLabel><FormControl><Input placeholder={t('admin.userEmailPlaceholder')} {...field} /></FormControl><FormMessage /></FormItem>
                             )} />
-                            <Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} Make Admin</Button>
+                            <Button type="submit" disabled={isPending}>{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />} {t('admin.makeAdmin')}</Button>
                         </form>
                     </Form>
                 </CardContent>
             </Card>
             <Card>
-                 <CardHeader><CardTitle>Current Admins</CardTitle></CardHeader>
+                 <CardHeader><CardTitle>{t('admin.currentAdmins')}</CardTitle></CardHeader>
                  <CardContent>
                     {loading ? <Skeleton className="h-20 w-full" /> : (
                         <ul className="space-y-2">
@@ -589,12 +595,12 @@ function AdminManager() {
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>Revoke Admin?</AlertDialogTitle>
-                                                    <AlertDialogDescription>Are you sure you want to remove admin privileges for {admin.email}?</AlertDialogDescription>
+                                                    <AlertDialogTitle>{t('admin.revokeAdminTitle')}</AlertDialogTitle>
+                                                    <AlertDialogDescription>{t('admin.revokeAdminDescription', { email: admin.email || 'user' })}</AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
-                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => removeAdmin(admin.uid)}>Revoke</AlertDialogAction>
+                                                    <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => removeAdmin(admin.uid)}>{t('admin.revoke')}</AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
@@ -618,6 +624,7 @@ function SettingsManager() {
     const [newWord, setNewWord] = useState('');
     const [isUpdating, startTransition] = useTransition();
     const { toast } = useToast();
+    const { t } = useLocale();
     const settingsRef = doc(db, 'settings', 'config');
 
     const fetchSettings = useCallback(async () => {
@@ -633,11 +640,11 @@ function SettingsManager() {
             }
         } catch (e) {
             console.error("Error fetching settings:", e);
-            toast({ title: 'Error', description: 'Could not load settings.', variant: 'destructive'});
+            toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive'});
         } finally {
             setLoading(false);
         }
-    }, [toast, settingsRef]);
+    }, [toast, settingsRef, t]);
 
     useEffect(() => {
         fetchSettings();
@@ -648,14 +655,14 @@ function SettingsManager() {
             const word = newWord.trim().toLowerCase();
             if (!word) return;
             if (settings.forbiddenWords.includes(word)) {
-                toast({ title: "Word already exists", description: `"${word}" is already in the list.`, variant: "default" });
+                toast({ title: t('admin.wordExistsTitle'), description: t('admin.wordExistsDescription', { word }), variant: "default" });
                 return;
             }
 
             const updatedWords = [...settings.forbiddenWords, word].sort();
             try {
                 await setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true });
-                toast({ title: 'Success!', description: `The word "${word}" has been added.` });
+                toast({ title: t('toasts.success'), description: t('admin.wordAdded', { word }) });
                 setSettings({ forbiddenWords: updatedWords }); // Update local state immediately
                 setNewWord(''); // Clear input
             } catch (error) {
@@ -670,7 +677,7 @@ function SettingsManager() {
             const updatedWords = settings.forbiddenWords.filter(w => w !== wordToRemove);
             try {
                 await setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true });
-                toast({ title: 'Success!', description: `The word "${wordToRemove}" has been removed.` });
+                toast({ title: t('toasts.success'), description: t('admin.wordRemoved', { word: wordToRemove }) });
                 setSettings({ forbiddenWords: updatedWords }); // Update local state immediately
             } catch (error) {
                 const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: updatedWords }});
@@ -686,37 +693,37 @@ function SettingsManager() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Manage Forbidden Words</CardTitle>
-                <CardDescription>Add or remove words that should be blocked from posts and comments. Changes are saved automatically.</CardDescription>
+                <CardTitle>{t('admin.wordFilterTitle')}</CardTitle>
+                <CardDescription>{t('admin.wordFilterDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex gap-2">
                     <Input 
                         value={newWord}
                         onChange={e => setNewWord(e.target.value)}
-                        placeholder="Add a new word..."
+                        placeholder={t('admin.addWordPlaceholder')}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddWord(); } }}
                         disabled={isUpdating}
                     />
                     <Button onClick={handleAddWord} disabled={isUpdating || !newWord.trim()}>
                         {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Add Word
+                        {t('admin.addWord')}
                     </Button>
                 </div>
                 <div className="border rounded-md p-4 h-64 overflow-y-auto">
                     {settings.forbiddenWords.length === 0 ? (
                         <div className="flex h-full items-center justify-center">
-                            <p className="text-muted-foreground">No forbidden words yet.</p>
+                            <p className="text-muted-foreground">{t('admin.noWords')}</p>
                         </div>
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1 py-1 pl-2 pr-1">
+                                <Badge key={word} variant="secondary" className="group/badge inline-flex items-center gap-x-1 py-1 pl-2 pr-1 hover:bg-secondary">
                                     <span>{word}</span>
                                     <button 
                                         onClick={() => handleRemoveWord(word)} 
                                         disabled={isUpdating} 
-                                        className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${word}`}
                                     >
                                         <X className="h-3 w-3" />
@@ -739,6 +746,7 @@ function ProtectedNamesManager() {
     const [newName, setNewName] = useState('');
     const [isUpdating, startTransition] = useTransition();
     const { toast } = useToast();
+    const { t } = useLocale();
     const settingsRef = doc(db, 'settings', 'protectedNames');
 
     const fetchSettings = useCallback(async () => {
@@ -753,11 +761,11 @@ function ProtectedNamesManager() {
             }
         } catch (e) {
             console.error("Error fetching protected names:", e);
-            toast({ title: 'Error', description: 'Could not load protected names.', variant: 'destructive'});
+            toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive'});
         } finally {
             setLoading(false);
         }
-    }, [toast, settingsRef]);
+    }, [toast, settingsRef, t]);
 
     useEffect(() => {
         fetchSettings();
@@ -768,14 +776,14 @@ function ProtectedNamesManager() {
             const name = newName.trim().toLowerCase();
             if (!name) return;
             if (protectedNames.includes(name)) {
-                toast({ title: "Name already exists", description: `"${name}" is already in the list.`, variant: "default" });
+                toast({ title: t('admin.nameExistsTitle'), description: t('admin.nameExistsDescription', { name }), variant: "default" });
                 return;
             }
 
             const updatedNames = [...protectedNames, name].sort();
             try {
                 await setDoc(settingsRef, { names: updatedNames }, { merge: true });
-                toast({ title: 'Success!', description: `The name "${name}" has been protected.` });
+                toast({ title: t('toasts.success'), description: t('admin.nameAdded', { name }) });
                 setProtectedNames(updatedNames);
                 setNewName('');
             } catch (error) {
@@ -790,7 +798,7 @@ function ProtectedNamesManager() {
             const updatedNames = protectedNames.filter(n => n !== nameToRemove);
             try {
                 await setDoc(settingsRef, { names: updatedNames }, { merge: true });
-                toast({ title: 'Success!', description: `The name "${nameToRemove}" is no longer protected.` });
+                toast({ title: t('toasts.success'), description: t('admin.nameRemoved', { name: nameToRemove }) });
                 setProtectedNames(updatedNames);
             } catch (error) {
                 const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
@@ -806,37 +814,37 @@ function ProtectedNamesManager() {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Manage Protected Names</CardTitle>
-                <CardDescription>Block posts if their title contains any of these names. This is case-insensitive. Changes are saved automatically.</CardDescription>
+                <CardTitle>{t('admin.protectedNamesTitle')}</CardTitle>
+                <CardDescription>{t('admin.protectedNamesDescription')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex gap-2">
                     <Input 
                         value={newName}
                         onChange={e => setNewName(e.target.value)}
-                        placeholder="Add a new name to protect..."
+                        placeholder={t('admin.addNamePlaceholder')}
                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddName(); } }}
                         disabled={isUpdating}
                     />
                     <Button onClick={handleAddName} disabled={isUpdating || !newName.trim()}>
                         {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Add Name
+                        {t('admin.addName')}
                     </Button>
                 </div>
                 <div className="border rounded-md p-4 h-64 overflow-y-auto">
                     {protectedNames.length === 0 ? (
                         <div className="flex h-full items-center justify-center">
-                            <p className="text-muted-foreground">No protected names yet.</p>
+                            <p className="text-muted-foreground">{t('admin.noNames')}</p>
                         </div>
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1 py-1 pl-2 pr-1">
+                                <Badge key={name} variant="secondary" className="group/badge inline-flex items-center gap-x-1 py-1 pl-2 pr-1 hover:bg-secondary">
                                     <span>{name}</span>
                                     <button 
                                         onClick={() => handleRemoveName(name)} 
                                         disabled={isUpdating} 
-                                        className="h-5 w-5 flex-shrink-0 flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${name}`}
                                     >
                                         <X className="h-3 w-3" />
@@ -856,15 +864,16 @@ export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLocale();
 
   const canViewDashboard = userProfile?.role === 'admin';
 
   useEffect(() => {
     if (!authLoading && !canViewDashboard) {
-        toast({ title: 'Access Denied', description: 'You do not have permission to view this page.', variant: 'destructive' });
+        toast({ title: t('toasts.permissionDenied'), description: t('toasts.unauthorizedPage'), variant: 'destructive' });
         router.push('/');
     }
-  }, [userProfile, authLoading, router, toast, canViewDashboard]);
+  }, [userProfile, authLoading, router, toast, canViewDashboard, t]);
 
   if (authLoading || !canViewDashboard) {
     return <div className="py-8"><Skeleton className="h-96 w-full" /></div>;
@@ -878,12 +887,12 @@ export function AdminDashboard() {
     >
       <div className="w-full overflow-x-auto border-b">
         <TabsList className="inline-flex">
-          <TabsTrigger value="posts">Manage Posts</TabsTrigger>
-          {userProfile?.permissions?.approve_pictures && <TabsTrigger value="images">Image Approval</TabsTrigger>}
-          {userProfile?.role === 'admin' && <TabsTrigger value="users">Manage Users</TabsTrigger>}
-          {userProfile?.permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
-          {userProfile?.permissions?.manage_forbidden_words && <TabsTrigger value="settings">Word Filter</TabsTrigger>}
-          {userProfile?.permissions?.manage_protected_names && <TabsTrigger value="names">Protected Names</TabsTrigger>}
+          <TabsTrigger value="posts">{t('admin.managePosts')}</TabsTrigger>
+          {userProfile?.permissions?.approve_pictures && <TabsTrigger value="images">{t('admin.imageApproval')}</TabsTrigger>}
+          {userProfile?.role === 'admin' && <TabsTrigger value="users">{t('admin.manageUsers')}</TabsTrigger>}
+          {userProfile?.permissions?.manage_admins && <TabsTrigger value="admins">{t('admin.manageAdmins')}</TabsTrigger>}
+          {userProfile?.permissions?.manage_forbidden_words && <TabsTrigger value="settings">{t('admin.wordFilter')}</TabsTrigger>}
+          {userProfile?.permissions?.manage_protected_names && <TabsTrigger value="names">{t('admin.protectedNames')}</TabsTrigger>}
         </TabsList>
       </div>
       <TabsContent value="posts" className="mt-4">

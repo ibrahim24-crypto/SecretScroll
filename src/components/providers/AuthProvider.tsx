@@ -42,16 +42,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const profile = docSnap.data() as UserProfile;
             
             if (authUser.email === 'ibrahimezzine09@gmail.com') {
-              const adminProfile = { ...profile, role: 'admin' as const, permissions: allPermissions };
-              setUserProfile(adminProfile);
+              const superAdminProfile = { ...profile, role: 'admin' as const, permissions: allPermissions };
               if (JSON.stringify(profile.permissions) !== JSON.stringify(allPermissions) || profile.role !== 'admin') {
-                setDoc(userRef, { role: 'admin', permissions: allPermissions }, { merge: true });
+                setDoc(userRef, { role: 'admin', permissions: allPermissions }, { merge: true })
+                  .then(() => setUserProfile(superAdminProfile))
+                  .catch(console.error);
+              } else {
+                setUserProfile(superAdminProfile);
               }
             } else {
               const currentPermissions = profile.permissions || noPermissions;
-              setUserProfile({ ...profile, permissions: currentPermissions });
-              if (!profile.permissions) {
-                 setDoc(userRef, { permissions: currentPermissions }, { merge: true });
+              const userProfileWithDefaults = { ...profile, permissions: currentPermissions };
+               if (!profile.permissions) {
+                 setDoc(userRef, { permissions: currentPermissions }, { merge: true })
+                    .then(() => setUserProfile(userProfileWithDefaults))
+                    .catch(console.error);
+              } else {
+                  setUserProfile(userProfileWithDefaults);
               }
             }
           } else {
