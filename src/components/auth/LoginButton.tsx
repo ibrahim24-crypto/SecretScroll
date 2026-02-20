@@ -20,13 +20,17 @@ export function LoginButton() {
       toast({
         title: t('toasts.signedInSuccess'),
       });
-    } catch (error) {
-      console.error('Error signing in with Google: ', error);
-      toast({
-        title: t('toasts.authFailed'),
-        description: t('toasts.authFailedDescription'),
-        variant: 'destructive',
-      });
+    } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        console.log('Sign-in popup closed by user.');
+      } else {
+        console.error('Error signing in with Google: ', error);
+        toast({
+          title: t('toasts.authFailed'),
+          description: t('toasts.authFailedDescription'),
+          variant: 'destructive',
+        });
+      }
     } finally {
       setLoading(false);
     }
