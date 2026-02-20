@@ -718,17 +718,17 @@ function SettingsManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="group/badge inline-flex items-center gap-x-1 py-1 pl-2 pr-1 hover:bg-secondary">
+                                <div key={word} className="inline-flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
                                     <span>{word}</span>
                                     <button 
                                         onClick={() => handleRemoveWord(word)} 
                                         disabled={isUpdating} 
-                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="-mr-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${word}`}
                                     >
-                                        <X className="h-3 w-3" />
+                                        <X className="h-3.5 w-3.5" />
                                     </button>
-                                </Badge>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -839,17 +839,17 @@ function ProtectedNamesManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="group/badge inline-flex items-center gap-x-1 py-1 pl-2 pr-1 hover:bg-secondary">
+                                <div key={name} className="inline-flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
                                     <span>{name}</span>
                                     <button 
                                         onClick={() => handleRemoveName(name)} 
                                         disabled={isUpdating} 
-                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="-mr-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${name}`}
                                     >
-                                        <X className="h-3 w-3" />
+                                        <X className="h-3.5 w-3.5" />
                                     </button>
-                                </Badge>
+                                </div>
                             ))}
                         </div>
                     )}
