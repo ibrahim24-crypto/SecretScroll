@@ -207,6 +207,7 @@ export default function EditPostPage() {
       }
 
 
+      let isFlaggedForReview = false;
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
       if (contentToCheck.trim()) {
@@ -239,43 +240,41 @@ export default function EditPostPage() {
           });
 
           if (!checkRes.ok) {
+            isFlaggedForReview = true;
             toast({
-              variant: "destructive",
-              title: t('toasts.contentCheckError'),
-              description: t('toasts.contentCheckErrorDescription'),
-              duration: 9000,
+              title: "Post Submitted for Review",
+              description: "We couldn't automatically verify the content, so it will be manually reviewed.",
             });
-            return; // Block submission
-          }
-
-          const { flagged, badWords } = await checkRes.json();
-          if (flagged) {
-            if (badWords && badWords.length > 0) {
-              toast({
-                variant: "destructive",
-                title: t('toasts.inappropriateContent'),
-                description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
-                duration: 9000,
-              });
-            } else {
-              toast({
-                variant: "destructive",
-                title: t('toasts.inappropriateContent'),
-                description: t('toasts.inappropriateContentDescription'),
-                duration: 9000,
-              });
-            }
-            return; // Block submission
+            // Do not block submission
+          } else {
+              const { flagged, badWords } = await checkRes.json();
+              if (flagged) {
+                if (badWords && badWords.length > 0) {
+                  toast({
+                    variant: "destructive",
+                    title: t('toasts.inappropriateContent'),
+                    description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
+                    duration: 9000,
+                  });
+                } else {
+                  toast({
+                    variant: "destructive",
+                    title: t('toasts.inappropriateContent'),
+                    description: t('toasts.inappropriateContentDescription'),
+                    duration: 9000,
+                  });
+                }
+                return; // Block submission
+              }
           }
         } catch (error) {
           console.error("Error checking content:", error);
+          isFlaggedForReview = true;
           toast({
-            variant: "destructive",
-            title: t('toasts.contentCheckError'),
-            description: t('toasts.contentCheckConnectionError'),
-            duration: 9000,
+            title: "Post Submitted for Review",
+            description: "We couldn't automatically verify the content, so it will be manually reviewed.",
           });
-          return; // Block submission
+          // Do not block submission
         }
       }
       
@@ -303,7 +302,7 @@ export default function EditPostPage() {
         customFields: filteredCustomFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
-        isFlagged: false, // Content is clean if we reach here
+        isFlagged: isFlaggedForReview,
         updatedAt: serverTimestamp(),
       };
       

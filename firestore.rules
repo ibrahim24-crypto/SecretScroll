@@ -44,7 +44,7 @@ service cloud.firestore {
       allow update: if (
         // Any authenticated user can vote or update comment count
         request.auth != null &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
+        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['upvotes', 'downvotes', 'commentCount'])
       ) || (
         // Admins can approve images
         isAdmin() && hasPermission('approve_pictures') &&

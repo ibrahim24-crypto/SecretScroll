@@ -157,7 +157,7 @@ export function PostCard({ post: initialPost }: PostCardProps) {
       const permissionError = new FirestorePermissionError({
           path: postRef.path,
           operation: 'update',
-          requestResourceData: { vote: voteType },
+          requestResourceData: { upvotes: '...', downvotes: '...' },
       });
       errorEmitter.emit('permission-error', permissionError);
     } finally {
