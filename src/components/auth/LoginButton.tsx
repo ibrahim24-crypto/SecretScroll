@@ -28,7 +28,7 @@ export function LoginButton() {
             variant: 'destructive',
         });
         // Fallback to redirect.
-        signInWithRedirect(auth, googleAuthProvider);
+        await signInWithRedirect(auth, googleAuthProvider);
         return;
       } else if (error.code === 'auth/popup-closed-by-user') {
         console.log('Sign-in popup closed by user.');

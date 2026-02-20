@@ -8,7 +8,7 @@ import { Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { signInWithPopup, signInAnonymously, updateProfile, signInWithRedirect } from 'firebase/auth';
+import { signInWithPopup, signInAnonymously, updateProfile, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleAuthProvider, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
@@ -37,6 +37,23 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle redirect result when component mounts
+  useEffect(() => {
+    const checkRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          toast({ title: t('toasts.signedInSuccess') });
+          onComplete();
+        }
+      } catch (error) {
+        console.error('Redirect sign-in error:', error);
+      }
+    };
+    checkRedirectResult();
+  }, [t, toast, onComplete]);
+
+
   const canProceed = isReady && confirmationText.toLowerCase() === t('welcome.agreePlaceholder').toLowerCase();
 
   const handleGoogleLogin = async () => {
@@ -53,7 +70,7 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
                 variant: 'destructive',
             });
             // Fallback to redirect. This will navigate away from the page.
-            signInWithRedirect(auth, googleAuthProvider);
+            await signInWithRedirect(auth, googleAuthProvider);
             return;
         } else if (error.code === 'auth/popup-closed-by-user') {
             console.log('Sign-in popup closed by user.');
