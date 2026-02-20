@@ -34,6 +34,7 @@ export interface PostImage {
 export interface Post {
   id: string;
   authorUid: string;
+  authorDisplayName?: string;
   title: string;
   content: string;
   images?: PostImage[] | null;

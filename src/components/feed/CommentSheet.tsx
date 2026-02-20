@@ -68,7 +68,7 @@ export function CommentSheet({ postId, children }: { postId: string, children: R
             content: newComment,
             createdAt: serverTimestamp(),
             userId: user.uid,
-            authorDisplayName: user.isAnonymous ? 'Anonymous' : (user.displayName || 'User'),
+            authorDisplayName: user.displayName || (user.isAnonymous ? t('userMenu.anonymousUser') : t('userMenu.user')),
         };
 
         try {

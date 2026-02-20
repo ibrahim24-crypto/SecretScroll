@@ -126,7 +126,6 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
 // #region Post Manager
 function PostManager() {
     const [posts, setPosts] = useState<Post[]>([]);
-    const [authors, setAuthors] = useState<Record<string, UserProfile>>({});
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Record<string, boolean>>({});
     const [filter, setFilter] = useState('');
@@ -142,21 +141,6 @@ function PostManager() {
             const querySnapshot = await getDocs(q);
             const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
-
-            // Fetch unique authors
-            const authorIds = [...new Set(postsData.map(p => p.authorUid).filter(id => id !== 'anonymous_guest'))];
-            const fetchedAuthors: Record<string, UserProfile> = {};
-            
-            const authorPromises = authorIds.map(async (authorId) => {
-                const userRef = doc(db, 'users', authorId);
-                const userSnap = await getDoc(userRef);
-                if (userSnap.exists()) {
-                    fetchedAuthors[authorId] = userSnap.data() as UserProfile;
-                }
-            });
-            await Promise.all(authorPromises);
-            setAuthors(fetchedAuthors);
-
         } catch (error) {
            console.error("Error fetching posts:", error);
            toast({ title: 'Error', description: 'Could not fetch posts.', variant: 'destructive' });
@@ -212,7 +196,6 @@ function PostManager() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {loading ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 w-full" />) :
                 filteredPosts.map(post => {
-                    const author = authors[post.authorUid];
                     return (
                     <Card key={post.id} className={cn(post.isFlagged && "border-destructive")}>
                         <CardHeader>
@@ -221,17 +204,11 @@ function PostManager() {
                                 {post.isFlagged && <Badge variant="destructive">Flagged</Badge>}
                             </CardTitle>
                              <CardDescription className="flex items-center gap-2 text-xs">
-                                {author ? (
-                                    <>
-                                        <Avatar className="h-5 w-5">
-                                            <AvatarImage src={author.photoURL || undefined} />
-                                            <AvatarFallback>{author.displayName?.charAt(0) || 'U'}</AvatarFallback>
-                                        </Avatar>
-                                        <span>{author.displayName || author.email}</span>
-                                    </>
-                                ) : (
-                                    <span>By {post.authorUid === 'anonymous_guest' ? 'Guest' : '...'}</span>
-                                )}
+                                <Avatar className="h-5 w-5">
+                                    <AvatarImage src={undefined} />
+                                    <AvatarFallback>{post.authorDisplayName?.charAt(0) || 'U'}</AvatarFallback>
+                                </Avatar>
+                                <span>{post.authorDisplayName || (post.authorUid === 'anonymous_guest' ? 'Guest' : 'Unknown User')}</span>
                                 <span>•</span>
                                 <span>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}</span>
                             </CardDescription>
@@ -734,9 +711,9 @@ function SettingsManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5">
+                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5 text-xs">
                                     <span>{word}</span>
-                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex-shrink-0 rounded-full hover:bg-muted p-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex-shrink-0 items-center justify-center rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed h-4 w-4">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>
@@ -849,9 +826,9 @@ function ProtectedNamesManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5">
+                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5 text-xs">
                                     <span>{name}</span>
-                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex-shrink-0 rounded-full hover:bg-muted p-0.5 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex-shrink-0 items-center justify-center rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed h-4 w-4">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>

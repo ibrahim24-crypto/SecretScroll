@@ -252,6 +252,7 @@ export default function CreatePostPage() {
         images: images,
         hasPendingImages: hasPendingImages,
         authorUid: user ? user.uid : "anonymous_guest",
+        authorDisplayName: user?.displayName,
         visibility: 'public' as const,
         isFlagged: isFlaggedForReview,
         upvotes: 0,
