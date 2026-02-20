@@ -11,25 +11,20 @@ service cloud.firestore {
       return request.auth != null && 
              request.auth.token.email == 'ibrahimezzine09@gmail.com';
     }
-  
+
+    // This function should only be called after checking if the user is authenticated.
     function getPermissions() {
-      // This function now safely handles cases where a user might not be logged in.
-      if (request.auth == null) {
-        return {};
-      }
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
     }
     
     function hasPermission(permission) {
+      // This is safe because it's always used after isAdmin(), which checks for auth.
       return getPermissions()[permission] == true;
     }
 
     function isAdmin() {
-      if (request.auth == null) {
-        return false;
-      }
-      let userDoc = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return userDoc.data.role == 'admin';
+      return request.auth != null && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   
     match /users/{userId} {
@@ -46,8 +41,8 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      // Allow public read only on approved posts. Admins can read any.
-      allow read: if resource.data.status == 'approved' || isAdmin();
+      // Public can read approved posts. Admins and authors can read their own posts.
+      allow read: if resource.data.status == 'approved' || isAdmin() || isOwner(resource.data.authorUid);
       
       allow create: if request.auth != null;
 
@@ -57,7 +52,8 @@ service cloud.firestore {
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
       ) || (
         // Admins can manage posts (approve/reject/edit images)
-        isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'images', 'hasPendingImages'])
+        isAdmin() && hasPermission('approve_pictures') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'images', 'hasPendingImages', 'updatedAt'])
       ) || (
         // The author can edit their own post content
         isOwner(resource.data.authorUid) &&
@@ -85,10 +81,10 @@ service cloud.firestore {
       // Any authenticated user can READ settings (required for client-side checks)
       allow read: if request.auth != null;
       // Only specific admins can WRITE settings
-      allow write: if (isSuperAdmin() || (isAdmin() && (
+      allow write: if isSuperAdmin() || (isAdmin() && (
         (document == 'config' && hasPermission('manage_forbidden_words')) ||
         (document == 'protectedNames' && hasPermission('manage_protected_names'))
-      )));
+      ));
     }
   }
 }
