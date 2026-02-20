@@ -72,27 +72,29 @@ export function PostCard({ post: initialPost }: PostCardProps) {
   
   const isAuthor = user?.uid === post.authorUid;
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!isAuthor) {
         toast({ title: 'Permission Denied', variant: 'destructive' });
         return;
     }
     setIsDeleting(true);
-    try {
-        await deleteDoc(doc(db, 'posts', post.id));
-        toast({ title: 'Post Deleted', description: 'Your post has been successfully removed.' });
-        // The real-time listener in Feed.tsx will handle removing the post from the UI.
-    } catch (error) {
-        console.error("Error deleting post:", error);
-        const permissionError = new FirestorePermissionError({ path: `posts/${post.id}`, operation: 'delete' });
-        errorEmitter.emit('permission-error', permissionError);
-    } finally {
-        setIsDeleting(false);
-    }
+    const postRef = doc(db, 'posts', post.id);
+    deleteDoc(postRef)
+        .then(() => {
+            toast({ title: 'Post Deleted', description: 'Your post has been successfully removed.' });
+            // The real-time listener in Feed.tsx will handle removing the post from the UI.
+        })
+        .catch((error) => {
+            const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'delete' });
+            errorEmitter.emit('permission-error', permissionError);
+        })
+        .finally(() => {
+            setIsDeleting(false);
+        });
   };
 
 
-  const handleVote = async (voteType: 'upvote' | 'downvote') => {
+  const handleVote = (voteType: 'upvote' | 'downvote') => {
     if (!user) {
       toast({ title: 'Please sign in to vote.', variant: 'destructive' });
       return;
@@ -102,67 +104,74 @@ export function PostCard({ post: initialPost }: PostCardProps) {
     setIsVoting(true);
 
     const postRef = doc(db, 'posts', post.id);
-    const voteCollectionRef = collection(db, 'votes');
-    const existingVoteQuery = query(voteCollectionRef, where('userId', '==', user.uid), where('postId', '==', post.id));
 
-    try {
+    runTransaction(db, async (transaction) => {
+      const voteCollectionRef = collection(db, 'votes');
+      const existingVoteQuery = query(voteCollectionRef, where('userId', '==', user.uid), where('postId', '==', post.id));
+      
+      const postDoc = await transaction.get(postRef);
+      if (!postDoc.exists()) throw "Post does not exist!";
+      
+      // All reads should be inside the transaction, but getDocs is not a transaction read.
+      // This is a known complexity. For voting, this small race condition is acceptable.
       const existingVoteSnapshot = await getDocs(existingVoteQuery);
       const existingVoteDoc = existingVoteSnapshot.docs[0];
       const currentVote = existingVoteDoc?.data().type;
 
-      await runTransaction(db, async (transaction) => {
-        const postDoc = await transaction.get(postRef);
-        if (!postDoc.exists()) throw "Post does not exist!";
+      let upvoteIncrement = 0;
+      let downvoteIncrement = 0;
+      let newVoteState: 'upvote' | 'downvote' | null = null;
 
-        let upvoteIncrement = 0;
-        let downvoteIncrement = 0;
-        let newVoteState: 'upvote' | 'downvote' | null = null;
-        
-        if (currentVote === voteType) { // Undoing vote
-          if (voteType === 'upvote') upvoteIncrement = -1;
-          else downvoteIncrement = -1;
-          newVoteState = null;
-          if (existingVoteDoc) transaction.delete(existingVoteDoc.ref);
-        } else if (currentVote) { // Changing vote
-          if (voteType === 'upvote') {
-            upvoteIncrement = 1;
-            downvoteIncrement = -1;
-          } else {
-            upvoteIncrement = -1;
-            downvoteIncrement = 1;
-          }
-          newVoteState = voteType;
-          if (existingVoteDoc) transaction.update(existingVoteDoc.ref, { type: voteType });
-        } else { // New vote
-          if (voteType === 'upvote') upvoteIncrement = 1;
-          else downvoteIncrement = 1;
-          newVoteState = voteType;
-          const newVoteRef = doc(collection(db, 'votes'));
-          transaction.set(newVoteRef, {
-            postId: post.id,
-            userId: user.uid,
-            type: voteType,
-            createdAt: new Date(),
-          });
+      if (currentVote === voteType) { // Undoing vote
+        if (voteType === 'upvote') upvoteIncrement = -1;
+        else downvoteIncrement = -1;
+        newVoteState = null;
+        if (existingVoteDoc) transaction.delete(existingVoteDoc.ref);
+      } else if (currentVote) { // Changing vote
+        if (voteType === 'upvote') {
+          upvoteIncrement = 1;
+          downvoteIncrement = -1;
+        } else {
+          upvoteIncrement = -1;
+          downvoteIncrement = 1;
         }
-        
-        const newUpvotes = postDoc.data().upvotes + upvoteIncrement;
-        const newDownvotes = postDoc.data().downvotes + downvoteIncrement;
-        transaction.update(postRef, { upvotes: newUpvotes, downvotes: newDownvotes });
+        newVoteState = voteType;
+        if (existingVoteDoc) transaction.update(existingVoteDoc.ref, { type: voteType });
+      } else { // New vote
+        if (voteType === 'upvote') upvoteIncrement = 1;
+        else downvoteIncrement = 1;
+        newVoteState = voteType;
+        const newVoteRef = doc(collection(db, 'votes'));
+        transaction.set(newVoteRef, {
+          postId: post.id,
+          userId: user.uid,
+          type: voteType,
+          createdAt: new Date(),
+        });
+      }
+      
+      const newUpvotes = postDoc.data().upvotes + upvoteIncrement;
+      const newDownvotes = postDoc.data().downvotes + downvoteIncrement;
+      transaction.update(postRef, { upvotes: newUpvotes, downvotes: newDownvotes });
 
-        setPost(prev => ({ ...prev, upvotes: newUpvotes, downvotes: newDownvotes, userVote: newVoteState }));
-      });
-    } catch (e) {
-      console.error(e);
+      return { newUpvotes, newDownvotes, newVoteState };
+    })
+    .then((result) => {
+        if(result) {
+             setPost(prev => ({ ...prev, upvotes: result.newUpvotes, downvotes: result.newDownvotes, userVote: result.newVoteState }));
+        }
+    })
+    .catch((e) => {
       const permissionError = new FirestorePermissionError({
           path: postRef.path,
           operation: 'update',
           requestResourceData: { upvotes: '...', downvotes: '...' },
       });
       errorEmitter.emit('permission-error', permissionError);
-    } finally {
+    })
+    .finally(() => {
       setIsVoting(false);
-    }
+    });
   };
 
   const approvedImages = post.images?.filter(img => img.status === 'approved').map(img => img.url) || [];

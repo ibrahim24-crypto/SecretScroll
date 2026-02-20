@@ -57,20 +57,22 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
   });
 
   const onSubmit = (data: { permissions: string[] }) => {
-    startTransition(async () => {
+    startTransition(() => {
       const newPermissions = PERMISSIONS_CONFIG.reduce((acc, p) => {
         acc[p.id] = data.permissions.includes(p.id);
         return acc;
       }, {} as AdminPermissions);
 
-      try {
-        await updateDoc(doc(db, 'users', admin.uid), { permissions: newPermissions });
-        toast({ title: t('toasts.success'), description: t('admin.permissionsUpdated', { email: admin.email || 'user' }) });
-        onUpdate(); // Refresh admin list in parent
-      } catch (error) {
-        const permissionError = new FirestorePermissionError({ path: `users/${admin.uid}`, operation: 'update' });
-        errorEmitter.emit('permission-error', permissionError);
-      }
+      const adminRef = doc(db, 'users', admin.uid);
+      updateDoc(adminRef, { permissions: newPermissions })
+        .then(() => {
+          toast({ title: t('toasts.success'), description: t('admin.permissionsUpdated', { email: admin.email || 'user' }) });
+          onUpdate(); // Refresh admin list in parent
+        })
+        .catch((error) => {
+          const permissionError = new FirestorePermissionError({ path: adminRef.path, operation: 'update', requestResourceData: { permissions: newPermissions } });
+          errorEmitter.emit('permission-error', permissionError);
+        });
     });
   };
 
@@ -179,7 +181,7 @@ function PostManager() {
                 toast({ title: t('toasts.success'), description: `Post has been ${status}.` });
             })
             .catch(error => {
-                const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'update' });
+                const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'update', requestResourceData: { status } });
                 errorEmitter.emit('permission-error', permissionError);
             })
             .finally(() => {
@@ -351,7 +353,7 @@ function ImageApprovalQueue() {
             
             transaction.update(postRef, { images: newImages, hasPendingImages: hasPending });
             return hasPending;
-        }).then((hasPending) => {
+        }).then(() => {
             toast({ title: t('toasts.success'), description: t('admin.imageDecisionSuccess', { decision }) });
             
             setPosts(prevPosts => {
@@ -439,7 +441,6 @@ function UserManager() {
             const usersData = querySnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id } as UserProfile));
             setUsers(usersData);
         } catch (error: any) {
-           console.error("Error fetching users:", error);
            if (error.code === 'permission-denied') {
              toast({ title: t('toasts.permissionDenied'), description: 'You do not have permission to view users.', variant: 'destructive' });
            } else if (error.code === 'failed-precondition') {
@@ -556,7 +557,6 @@ function AdminManager() {
             const querySnapshot = await getDocs(q);
             setAdmins(querySnapshot.docs.map(d => ({...d.data(), uid: d.id } as UserProfile)));
         } catch (e: any) {
-            console.error("Error fetching admins. This might be a missing Firestore index for the 'users' collection. Please check your browser's developer console for an index creation link.", e);
             toast({ variant: 'destructive', title: t('toasts.error'), description: t('toasts.fetchError'), duration: 8000});
         } finally {
             setLoading(false);
@@ -571,39 +571,45 @@ function AdminManager() {
     });
 
     const onSubmit = (data: {email: string}) => {
-        startTransition(async () => {
-            try {
-                const q = query(collection(db, 'users'), where('email', '==', data.email));
-                const querySnapshot = await getDocs(q);
-
+        startTransition(() => {
+            const q = query(collection(db, 'users'), where('email', '==', data.email));
+            getDocs(q).then(querySnapshot => {
                 if (querySnapshot.empty) {
                     toast({ title: t('toasts.error'), description: t('admin.userNotFound'), variant: 'destructive'});
                     return;
                 }
                 
                 const userDoc = querySnapshot.docs[0];
-                await updateDoc(doc(db, 'users', userDoc.id), { role: 'admin' });
-                
-                toast({ title: t('toasts.success'), description: t('admin.adminAdded', { email: data.email }) });
-                fetchAdmins(); // Refresh admin list
-                form.reset();
-
-            } catch (error: any) {
-                 const permissionError = new FirestorePermissionError({ path: 'users', operation: 'update' });
+                const userRef = doc(db, 'users', userDoc.id);
+                updateDoc(userRef, { role: 'admin' })
+                    .then(() => {
+                        toast({ title: t('toasts.success'), description: t('admin.adminAdded', { email: data.email }) });
+                        fetchAdmins();
+                        form.reset();
+                    })
+                    .catch(() => {
+                        const permissionError = new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { role: 'admin' } });
+                        errorEmitter.emit('permission-error', permissionError);
+                    });
+            }).catch(() => {
+                const permissionError = new FirestorePermissionError({ path: 'users', operation: 'list' });
                 errorEmitter.emit('permission-error', permissionError);
-            }
+            });
         });
     }
+
      const removeAdmin = (adminId: string) => {
-        startTransition(async () => {
-            try {
-                await updateDoc(doc(db, 'users', adminId), { role: 'user', permissions: {} });
-                toast({ title: t('toasts.success'), description: t('admin.adminRevoked') });
-                fetchAdmins();
-            } catch (error) {
-                const permissionError = new FirestorePermissionError({ path: `users/${adminId}`, operation: 'update' });
-                errorEmitter.emit('permission-error', permissionError);
-            }
+        startTransition(() => {
+            const adminRef = doc(db, 'users', adminId);
+            updateDoc(adminRef, { role: 'user', permissions: {} })
+                .then(() => {
+                    toast({ title: t('toasts.success'), description: t('admin.adminRevoked') });
+                    fetchAdmins();
+                })
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: adminRef.path, operation: 'update', requestResourceData: { role: 'user' } });
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         });
     }
 
@@ -683,21 +689,23 @@ function SettingsManager() {
 
     const fetchSettings = useCallback(async () => {
         setLoading(true);
-        try {
-            const docSnap = await getDoc(settingsRef);
+        getDoc(settingsRef).then(docSnap => {
             if (docSnap.exists()) {
                 setSettings(docSnap.data() as AppSettings);
             } else {
-                // If the doc doesn't exist, initialize it safely
-                await setDoc(settingsRef, { forbiddenWords: [] }, { merge: true });
-                setSettings({ forbiddenWords: [] });
+                setDoc(settingsRef, { forbiddenWords: [] }, { merge: true }).then(() => {
+                    setSettings({ forbiddenWords: [] });
+                }).catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'create', requestResourceData: { forbiddenWords: [] }});
+                    errorEmitter.emit('permission-error', permissionError);
+                })
             }
-        } catch (e) {
-            console.error("Error fetching settings:", e);
-            toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive'});
-        } finally {
+        }).catch(e => {
+            const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'get' });
+            errorEmitter.emit('permission-error', permissionError);
+        }).finally(() => {
             setLoading(false);
-        }
+        });
     }, [toast, settingsRef, t]);
 
     useEffect(() => {
@@ -705,7 +713,7 @@ function SettingsManager() {
     }, [fetchSettings]);
 
     const handleAddWord = () => {
-        startTransition(async () => {
+        startTransition(() => {
             const word = newWord.trim().toLowerCase();
             if (!word) return;
             if (settings.forbiddenWords.includes(word)) {
@@ -714,29 +722,31 @@ function SettingsManager() {
             }
 
             const updatedWords = [...settings.forbiddenWords, word].sort();
-            try {
-                await setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true });
-                toast({ title: t('toasts.success'), description: t('admin.wordAdded', { word }) });
-                setSettings({ forbiddenWords: updatedWords }); // Update local state immediately
-                setNewWord(''); // Clear input
-            } catch (error) {
-                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: updatedWords }});
-                errorEmitter.emit('permission-error', permissionError);
-            }
+            setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true })
+                .then(() => {
+                    toast({ title: t('toasts.success'), description: t('admin.wordAdded', { word }) });
+                    setSettings({ forbiddenWords: updatedWords });
+                    setNewWord('');
+                })
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: updatedWords }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         });
     };
 
     const handleRemoveWord = (wordToRemove: string) => {
-        startTransition(async () => {
+        startTransition(() => {
             const updatedWords = settings.forbiddenWords.filter(w => w !== wordToRemove);
-            try {
-                await setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true });
-                toast({ title: t('toasts.success'), description: t('admin.wordRemoved', { word: wordToRemove }) });
-                setSettings({ forbiddenWords: updatedWords }); // Update local state immediately
-            } catch (error) {
-                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: updatedWords }});
-                errorEmitter.emit('permission-error', permissionError);
-            }
+            setDoc(settingsRef, { forbiddenWords: updatedWords }, { merge: true })
+                .then(() => {
+                    toast({ title: t('toasts.success'), description: t('admin.wordRemoved', { word: wordToRemove }) });
+                    setSettings({ forbiddenWords: updatedWords });
+                })
+                .catch(error => {
+                     const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { forbiddenWords: updatedWords }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         });
     };
 
@@ -803,30 +813,33 @@ function ProtectedNamesManager() {
     const { t } = useLocale();
     const settingsRef = useMemo(() => doc(db, 'settings', 'protectedNames'), []);
 
-    const fetchSettings = useCallback(async () => {
+    const fetchSettings = useCallback(() => {
         setLoading(true);
-        try {
-            const docSnap = await getDoc(settingsRef);
+        getDoc(settingsRef).then(docSnap => {
             if (docSnap.exists()) {
                 setProtectedNames(docSnap.data().names || []);
             } else {
-                await setDoc(settingsRef, { names: [] }, { merge: true });
-                setProtectedNames([]);
+                setDoc(settingsRef, { names: [] }, { merge: true })
+                .then(() => setProtectedNames([]))
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'create', requestResourceData: { names: [] }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
             }
-        } catch (e) {
-            console.error("Error fetching protected names:", e);
-            toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive'});
-        } finally {
+        }).catch(e => {
+            const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'get' });
+            errorEmitter.emit('permission-error', permissionError);
+        }).finally(() => {
             setLoading(false);
-        }
-    }, [toast, settingsRef, t]);
+        });
+    }, [settingsRef]);
 
     useEffect(() => {
         fetchSettings();
     }, [fetchSettings]);
 
     const handleAddName = () => {
-        startTransition(async () => {
+        startTransition(() => {
             const name = newName.trim().toLowerCase();
             if (!name) return;
             if (protectedNames.includes(name)) {
@@ -835,29 +848,31 @@ function ProtectedNamesManager() {
             }
 
             const updatedNames = [...protectedNames, name].sort();
-            try {
-                await setDoc(settingsRef, { names: updatedNames }, { merge: true });
-                toast({ title: t('toasts.success'), description: t('admin.nameAdded', { name }) });
-                setProtectedNames(updatedNames);
-                setNewName('');
-            } catch (error) {
-                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
-                errorEmitter.emit('permission-error', permissionError);
-            }
+            setDoc(settingsRef, { names: updatedNames }, { merge: true })
+                .then(() => {
+                    toast({ title: t('toasts.success'), description: t('admin.nameAdded', { name }) });
+                    setProtectedNames(updatedNames);
+                    setNewName('');
+                })
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         });
     };
 
     const handleRemoveName = (nameToRemove: string) => {
-        startTransition(async () => {
+        startTransition(() => {
             const updatedNames = protectedNames.filter(n => n !== nameToRemove);
-            try {
-                await setDoc(settingsRef, { names: updatedNames }, { merge: true });
-                toast({ title: t('toasts.success'), description: t('admin.nameRemoved', { name: nameToRemove }) });
-                setProtectedNames(updatedNames);
-            } catch (error) {
-                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
-                errorEmitter.emit('permission-error', permissionError);
-            }
+             setDoc(settingsRef, { names: updatedNames }, { merge: true })
+                .then(() => {
+                    toast({ title: t('toasts.success'), description: t('admin.nameRemoved', { name: nameToRemove }) });
+                    setProtectedNames(updatedNames);
+                })
+                .catch(error => {
+                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
+                    errorEmitter.emit('permission-error', permissionError);
+                });
         });
     };
 

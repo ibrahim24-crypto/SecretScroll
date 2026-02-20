@@ -79,6 +79,7 @@ export default function EditPostPage() {
         if (docSnap.exists()) {
           const postData = { id: docSnap.id, ...docSnap.data() } as Post;
 
+          // Admins should be able to edit, but for now let's stick to authors
           if (postData.authorUid !== user.uid) {
             toast({ title: t('toasts.unauthorized'), description: t('toasts.unauthorizedEdit'), variant: "destructive" });
             router.push('/');
@@ -178,6 +179,11 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
+      let postStatus: 'pending' | 'approved' = 'approved';
+      let isFlaggedForReview = false;
+      let reviewToastTitle = '';
+      let reviewToastDescription = '';
+
       // 1. Check against protected names list
       try {
           const protectedNamesRef = doc(db, 'settings', 'protectedNames');
@@ -192,25 +198,19 @@ export default function EditPostPage() {
               );
 
               if (foundProtectedName) {
-                  toast({
-                      variant: "destructive",
-                      title: "Post Blocked",
-                      description: `The title contains a protected name or a variation of it: "${foundProtectedName}". Please change the title.`,
-                      duration: 9000,
-                  });
-                  return; // Block submission
+                  postStatus = 'pending';
+                  isFlaggedForReview = true;
+                  reviewToastTitle = 'Post Submitted for Review';
+                  reviewToastDescription = `This post has been flagged because it contains a protected name: "${foundProtectedName}". It will be reviewed by an admin.`;
               }
           }
       } catch (error) {
           console.error("Error checking protected names:", error);
-          // Don't block submission if this check fails, but log it.
       }
 
-
-      let isFlaggedForReview = false;
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
-      if (contentToCheck.trim()) {
+      if (contentToCheck.trim() && !isFlaggedForReview) {
         try {
           // 2. Check against local forbidden words list first
           const settingsRef = doc(db, 'settings', 'config');
@@ -222,60 +222,47 @@ export default function EditPostPage() {
               );
 
               if (foundWords.length > 0) {
-                  toast({
-                      variant: "destructive",
-                      title: t('toasts.inappropriateContent'),
-                      description: t('toasts.inappropriateContentWords', { words: foundWords.join(", ") }),
-                      duration: 9000,
-                  });
-                  return; // Block submission
-              }
-          }
-
-          // 3. If local check passes, check against external API
-          const checkRes = await fetch('/api/check-content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: contentToCheck }),
-          });
-
-          if (!checkRes.ok) {
-            isFlaggedForReview = true;
-            toast({
-              title: "Post Submitted for Review",
-              description: "We couldn't automatically verify the content, so it will be manually reviewed.",
-            });
-            // Do not block submission
-          } else {
-              const { flagged, badWords } = await checkRes.json();
-              if (flagged) {
-                if (badWords && badWords.length > 0) {
-                  toast({
-                    variant: "destructive",
-                    title: t('toasts.inappropriateContent'),
-                    description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
-                    duration: 9000,
-                  });
-                } else {
-                  toast({
-                    variant: "destructive",
-                    title: t('toasts.inappropriateContent'),
-                    description: t('toasts.inappropriateContentDescription'),
-                    duration: 9000,
-                  });
-                }
-                return; // Block submission
+                  postStatus = 'pending';
+                  isFlaggedForReview = true;
+                  reviewToastTitle = 'Post Submitted for Review';
+                  reviewToastDescription = `This post has been flagged for containing inappropriate words: ${foundWords.join(", ")}. It will be reviewed by an admin.`;
               }
           }
         } catch (error) {
-          console.error("Error checking content:", error);
-          isFlaggedForReview = true;
-          toast({
-            title: "Post Submitted for Review",
-            description: "We couldn't automatically verify the content, so it will be manually reviewed.",
-          });
-          // Do not block submission
+             console.error("Error checking forbidden words:", error);
         }
+      }
+      
+      if (contentToCheck.trim() && !isFlaggedForReview) {
+          try {
+              // 3. If not flagged yet, check external API
+              const checkRes = await fetch('/api/check-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: contentToCheck }),
+              });
+
+              if (!checkRes.ok) {
+                postStatus = 'pending';
+                isFlaggedForReview = true;
+                reviewToastTitle = "Post Submitted for Review";
+                reviewToastDescription = "We couldn't automatically verify the content, so it will be manually reviewed by an admin.";
+              } else {
+                  const { flagged } = await checkRes.json();
+                  if (flagged) {
+                    postStatus = 'pending';
+                    isFlaggedForReview = true;
+                    reviewToastTitle = "Post Submitted for Review";
+                    reviewToastDescription = `This post has been flagged for review due to potentially inappropriate content.`;
+                  }
+              }
+          } catch (error) {
+              console.error("Error checking content:", error);
+              postStatus = 'pending';
+              isFlaggedForReview = true;
+              reviewToastTitle = "Post Submitted for Review";
+              reviewToastDescription = "There was an issue automatically checking the content. It has been submitted for manual review.";
+          }
       }
       
       const postRef = doc(db, 'posts', post.id);
@@ -302,6 +289,7 @@ export default function EditPostPage() {
         customFields: filteredCustomFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
+        status: isFlaggedForReview ? postStatus : post.status, // Only update status if newly flagged
         isFlagged: isFlaggedForReview,
         updatedAt: serverTimestamp(),
       };
@@ -310,19 +298,23 @@ export default function EditPostPage() {
         Object.entries(updatedData).filter(([_, v]) => v !== undefined)
       );
       
-      try {
-        await updateDoc(postRef, cleanUpdatedData);
-        toast({ title: t('toasts.postUpdated'), description: t('toasts.postUpdatedDescription') });
-        router.push(`/post/${post.id}`);
-      } catch (serverError) {
-        console.error("Error updating post: ", serverError);
-        const permissionError = new FirestorePermissionError({
-          path: postRef.path,
-          operation: 'update',
-          requestResourceData: cleanUpdatedData,
+      updateDoc(postRef, cleanUpdatedData)
+        .then(() => {
+            if (isFlaggedForReview) {
+                toast({ title: reviewToastTitle, description: reviewToastDescription, duration: 9000 });
+            } else {
+                toast({ title: t('toasts.postUpdated'), description: t('toasts.postUpdatedDescription') });
+            }
+            router.push(`/post/${post.id}`);
+        })
+        .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: postRef.path,
+                operation: 'update',
+                requestResourceData: cleanUpdatedData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
-        errorEmitter.emit('permission-error', permissionError);
-      }
     });
   };
 
