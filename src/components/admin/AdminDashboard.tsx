@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
-import { collection, query, getDocs, doc, orderBy, deleteDoc, where, writeBatch, updateDoc, getDoc, setDoc, runTransaction } from 'firebase/firestore';
+import { collection, query, getDocs, doc, orderBy, deleteDoc, where, writeBatch, updateDoc, getDoc, setDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { Post, UserProfile, AppSettings, PostImage, Permission, AdminPermissions } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Trash2, UserPlus, X, Search, ShieldCheck, ShieldOff, Check, Ban, Settings } from 'lucide-react';
+import { Loader2, Trash2, UserPlus, X, Search, ShieldCheck, ShieldOff, Check, Ban, Settings, ShieldX } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -166,6 +166,28 @@ function PostManager() {
       fetchPostsAndUsers();
     }, [fetchPostsAndUsers]);
 
+    const handlePostStatusChange = (postId: string, status: 'approved' | 'rejected') => {
+        if (!userProfile?.permissions?.approve_pictures) { // Reuse this permission for post moderation
+            toast({ title: t('toasts.permissionDenied'), variant: 'destructive'});
+            return;
+        }
+        setUpdating(prev => ({ ...prev, [postId]: true }));
+        const postRef = doc(db, 'posts', postId);
+        updateDoc(postRef, { status, updatedAt: serverTimestamp() })
+            .then(() => {
+                setPosts(prev => prev.map(p => p.id === postId ? { ...p, status } : p));
+                toast({ title: t('toasts.success'), description: `Post has been ${status}.` });
+            })
+            .catch(error => {
+                const permissionError = new FirestorePermissionError({ path: postRef.path, operation: 'update' });
+                errorEmitter.emit('permission-error', permissionError);
+            })
+            .finally(() => {
+                setUpdating(prev => ({ ...prev, [postId]: false }));
+            });
+    };
+
+
     const handleDeletePost = (postId: string) => {
         if (!userProfile?.permissions?.delete_posts) {
             toast({ title: t('toasts.permissionDenied'), variant: 'destructive'});
@@ -211,11 +233,15 @@ function PostManager() {
                 filteredPosts.map(post => {
                     const author = users[post.authorUid];
                     return (
-                    <Card key={post.id} className={cn(post.isFlagged && "border-destructive")}>
+                    <Card key={post.id} className={cn(post.status === 'pending' && "border-yellow-500/80", post.status === 'rejected' && "border-destructive/80")}>
                         <CardHeader>
-                            <CardTitle className="flex justify-between items-start">
-                                {post.title}
-                                {post.isFlagged && <Badge variant="destructive">{t('admin.flagged')}</Badge>}
+                            <CardTitle className="flex justify-between items-start gap-2">
+                                <span className="break-all">{post.title}</span>
+                                <Badge variant={
+                                    post.status === 'approved' ? 'secondary' :
+                                    post.status === 'rejected' ? 'destructive' :
+                                    'default'
+                                } className="capitalize shrink-0">{post.status}</Badge>
                             </CardTitle>
                              <CardDescription className="flex items-center gap-3 pt-1">
                                 <Avatar className="h-8 w-8">
@@ -233,6 +259,19 @@ function PostManager() {
                             <p className="text-xs text-muted-foreground mt-2">{t('admin.joined', { date: post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'N/A' })}</p>
                         </CardContent>
                         <CardFooter className="flex justify-end gap-2">
+                            {post.status === 'pending' && userProfile?.permissions?.approve_pictures && (
+                                <div className='flex-1 flex gap-2'>
+                                    <Button variant="destructive" size="sm" onClick={() => handlePostStatusChange(post.id, 'rejected')} disabled={updating[post.id]}>
+                                        {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldX className="h-4 w-4" />}
+                                        <span className="ml-2">Reject</span>
+                                    </Button>
+                                    <Button variant="default" size="sm" onClick={() => handlePostStatusChange(post.id, 'approved')} disabled={updating[post.id]}>
+                                        {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                                        <span className="ml-2">Approve</span>
+                                    </Button>
+                                </div>
+                            )}
+
                             {userProfile?.permissions?.delete_posts && (
                                 <AlertDialog>
                                 <AlertDialogTrigger asChild><Button variant="destructive" size="sm" disabled={updating[post.id]}>
@@ -880,8 +919,15 @@ export function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLocale();
+  const [tabsKey, setTabsKey] = useState(0);
 
   const canViewDashboard = userProfile?.role === 'admin';
+  
+  const handlePermissionsUpdate = () => {
+    // Force a re-render of the tabs component to show/hide tabs based on new permissions
+    setTabsKey(prev => prev + 1); 
+  }
+
 
   useEffect(() => {
     if (!authLoading && !canViewDashboard) {
@@ -896,7 +942,7 @@ export function AdminDashboard() {
   
   return (
     <Tabs 
-      key={JSON.stringify(userProfile?.permissions)} 
+      key={tabsKey}
       defaultValue="posts" 
       className="w-full"
     >

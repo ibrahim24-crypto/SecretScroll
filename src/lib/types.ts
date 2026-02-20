@@ -45,7 +45,7 @@ export interface Post {
   upvotes: number;
   downvotes: number;
   reports: number;
-  status: 'approved'; // This status is now for the post text itself, which is always approved.
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: Timestamp;
   updatedAt: Timestamp;
   userVote?: 'upvote' | 'downvote' | null;

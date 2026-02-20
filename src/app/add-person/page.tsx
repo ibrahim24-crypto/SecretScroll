@@ -134,6 +134,11 @@ export default function CreatePostPage() {
 
   const onSubmit = (data: PostFormValues) => {
     startTransition(async () => {
+      let postStatus: 'pending' | 'approved' = 'approved';
+      let isFlaggedForReview = false;
+      let reviewToastTitle = '';
+      let reviewToastDescription = '';
+
       // 1. Check against protected names list
       try {
           const protectedNamesRef = doc(db, 'settings', 'protectedNames');
@@ -148,24 +153,19 @@ export default function CreatePostPage() {
               );
 
               if (foundProtectedName) {
-                  toast({
-                      variant: "destructive",
-                      title: "Post Blocked",
-                      description: `The title contains a protected name or a variation of it: "${foundProtectedName}". Please change the title.`,
-                      duration: 9000,
-                  });
-                  return; // Block submission
+                  postStatus = 'pending';
+                  isFlaggedForReview = true;
+                  reviewToastTitle = 'Post Submitted for Review';
+                  reviewToastDescription = `This post has been flagged because it contains a protected name: "${foundProtectedName}". It will be reviewed by an admin.`;
               }
           }
       } catch (error) {
           console.error("Error checking protected names:", error);
-          // Don't block submission if this check fails, but log it.
       }
 
-      let isFlaggedForReview = false;
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
-      if (contentToCheck.trim()) {
+      if (contentToCheck.trim() && !isFlaggedForReview) {
         try {
           // 2. Check against local forbidden words list first
           const settingsRef = doc(db, 'settings', 'config');
@@ -177,61 +177,49 @@ export default function CreatePostPage() {
               );
 
               if (foundWords.length > 0) {
-                  toast({
-                      variant: "destructive",
-                      title: t('toasts.inappropriateContent'),
-                      description: t('toasts.inappropriateContentWords', { words: foundWords.join(", ") }),
-                      duration: 9000,
-                  });
-                  return; // Block submission
-              }
-          }
-
-          // 3. If local check passes, check against external API
-          const checkRes = await fetch('/api/check-content', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: contentToCheck }),
-          });
-
-          if (!checkRes.ok) {
-            isFlaggedForReview = true;
-            toast({
-              title: "Post Submitted for Review",
-              description: "We couldn't automatically verify the content, so it will be manually reviewed.",
-            });
-            // Do not block submission
-          } else {
-              const { flagged, badWords } = await checkRes.json();
-              if (flagged) {
-                if (badWords && badWords.length > 0) {
-                  toast({
-                    variant: "destructive",
-                    title: t('toasts.inappropriateContent'),
-                    description: t('toasts.inappropriateContentWords', {words: badWords.join(", ")}),
-                    duration: 9000,
-                  });
-                } else {
-                  toast({
-                    variant: "destructive",
-                    title: t('toasts.inappropriateContent'),
-                    description: t('toasts.inappropriateContentDescription'),
-                    duration: 9000,
-                  });
-                }
-                return; // Block submission
+                  postStatus = 'pending';
+                  isFlaggedForReview = true;
+                  reviewToastTitle = 'Post Submitted for Review';
+                  reviewToastDescription = `This post has been flagged for containing inappropriate words: ${foundWords.join(", ")}. It will be reviewed by an admin.`;
               }
           }
         } catch (error) {
-          console.error("Error checking content:", error);
-          isFlaggedForReview = true;
-          toast({
-            title: "Post Submitted for Review",
-            description: "We couldn't automatically verify the content, so it will be manually reviewed.",
-          });
-          // Do not block submission
+             console.error("Error checking forbidden words:", error);
         }
       }
+      
+      if (contentToCheck.trim() && !isFlaggedForReview) {
+          try {
+              // 3. If not flagged yet, check external API
+              const checkRes = await fetch('/api/check-content', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: contentToCheck }),
+              });
+
+              if (!checkRes.ok) {
+                postStatus = 'pending';
+                isFlaggedForReview = true;
+                reviewToastTitle = "Post Submitted for Review";
+                reviewToastDescription = "We couldn't automatically verify the content, so it will be manually reviewed by an admin.";
+              } else {
+                  const { flagged } = await checkRes.json();
+                  if (flagged) {
+                    postStatus = 'pending';
+                    isFlaggedForReview = true;
+                    reviewToastTitle = "Post Submitted for Review";
+                    reviewToastDescription = `This post has been flagged for review due to potentially inappropriate content.`;
+                  }
+              }
+          } catch (error) {
+              console.error("Error checking content:", error);
+              postStatus = 'pending';
+              isFlaggedForReview = true;
+              reviewToastTitle = "Post Submitted for Review";
+              reviewToastDescription = "There was an issue automatically checking the content. It has been submitted for manual review.";
+          }
+      }
+
 
       const images: PostImage[] | null = data.imageUrls && data.imageUrls.length > 0
         ? data.imageUrls.map(url => ({ url, status: 'pending' as const }))
@@ -259,7 +247,7 @@ export default function CreatePostPage() {
         downvotes: 0,
         reports: 0,
         commentCount: 0,
-        status: 'approved' as const,
+        status: postStatus,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       };
@@ -272,7 +260,11 @@ export default function CreatePostPage() {
 
       addDoc(postCollectionRef, cleanPostData)
         .then(() => {
-          toast({ title: t('toasts.postPublished'), description: t('toasts.postPublishedDescription') });
+          if (postStatus === 'pending') {
+              toast({ title: reviewToastTitle, description: reviewToastDescription, duration: 9000 });
+          } else {
+              toast({ title: t('toasts.postPublished'), description: t('toasts.postPublishedDescription') });
+          }
           router.push('/');
         })
         .catch((serverError) => {
