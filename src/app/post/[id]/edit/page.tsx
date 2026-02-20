@@ -262,12 +262,16 @@ export default function EditPostPage() {
 
       const hasPendingImages = newImages.some(img => img.status === 'pending');
 
+      const filteredCustomFields = data.customFields?.filter(
+        field => field.label.trim() !== '' && field.value.trim() !== ''
+      );
+
       const updatedData = {
         title: data.title,
         content: data.content,
         category: data.category,
         eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
-        customFields: data.customFields,
+        customFields: filteredCustomFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
         isFlagged: false, // Content is clean if we reach here

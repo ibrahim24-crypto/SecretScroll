@@ -212,12 +212,16 @@ export default function CreatePostPage() {
 
       const hasPendingImages = !!images;
 
+      const filteredCustomFields = data.customFields?.filter(
+        field => field.label.trim() !== '' && field.value.trim() !== ''
+      );
+
       const postData = {
         title: data.title,
         content: data.content,
         category: data.category,
         eventDate: data.eventDate ? Timestamp.fromDate(data.eventDate) : null,
-        customFields: data.customFields,
+        customFields: filteredCustomFields,
         images: images,
         hasPendingImages: hasPendingImages,
         authorUid: user ? user.uid : "anonymous_guest",
