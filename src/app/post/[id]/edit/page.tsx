@@ -179,33 +179,64 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
-      let postStatus: 'pending' | 'approved' = 'approved';
+      let postStatus: 'pending' | 'approved' = post.status; // Default to current status
       let isFlaggedForReview = false;
       let reviewToastTitle = '';
       let reviewToastDescription = '';
 
-      // 1. Check against protected names list
+      // New Forbidden Names check
       try {
-          const protectedNamesRef = doc(db, 'settings', 'protectedNames');
-          const protectedNamesSnap = await getDoc(protectedNamesRef);
-          if (protectedNamesSnap.exists()) {
-              const protectedNames = protectedNamesSnap.data().names as string[];
+          const forbiddenNamesRef = doc(db, 'settings', 'forbiddenNames');
+          const forbiddenNamesSnap = await getDoc(forbiddenNamesRef);
+          if (forbiddenNamesSnap.exists() && !isFlaggedForReview) {
+              const forbiddenNames = forbiddenNamesSnap.data().names as string[];
               const titleLower = data.title.toLowerCase();
-              const titleReversedLower = titleLower.split('').reverse().join('');
+              const normalizedTitle = titleLower.replace(/[^a-z0-9]/gi, '');
 
-              const foundProtectedName = protectedNames.find(name => 
-                  titleLower.includes(name.toLowerCase()) || titleReversedLower.includes(name.toLowerCase())
-              );
+              for (const forbiddenName of forbiddenNames) {
+                  const normalizedForbiddenName = forbiddenName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+                  const reversedForbiddenName = normalizedForbiddenName.split('').reverse().join('');
 
-              if (foundProtectedName) {
-                  postStatus = 'pending';
-                  isFlaggedForReview = true;
-                  reviewToastTitle = 'Post Submitted for Review';
-                  reviewToastDescription = `This post has been flagged because it contains a protected name: "${foundProtectedName}". It will be reviewed by an admin.`;
+                  if (
+                      normalizedTitle.includes(normalizedForbiddenName) || 
+                      normalizedTitle.includes(reversedForbiddenName)
+                  ) {
+                      postStatus = 'pending';
+                      isFlaggedForReview = true;
+                      reviewToastTitle = 'Post Submitted for Review';
+                      reviewToastDescription = `This post has been flagged because the title appears to mention a forbidden name: "${forbiddenName}". It will be reviewed by an admin.`;
+                      break; // exit loop once a match is found
+                  }
               }
           }
       } catch (error) {
-          console.error("Error checking protected names:", error);
+          console.error("Error checking forbidden names:", error);
+      }
+
+      // 1. Check against protected names list
+      if (!isFlaggedForReview) {
+        try {
+            const protectedNamesRef = doc(db, 'settings', 'protectedNames');
+            const protectedNamesSnap = await getDoc(protectedNamesRef);
+            if (protectedNamesSnap.exists()) {
+                const protectedNames = protectedNamesSnap.data().names as string[];
+                const titleLower = data.title.toLowerCase();
+                const titleReversedLower = titleLower.split('').reverse().join('');
+
+                const foundProtectedName = protectedNames.find(name => 
+                    titleLower.includes(name.toLowerCase()) || titleReversedLower.includes(name.toLowerCase())
+                );
+
+                if (foundProtectedName) {
+                    postStatus = 'pending';
+                    isFlaggedForReview = true;
+                    reviewToastTitle = 'Post Submitted for Review';
+                    reviewToastDescription = `This post has been flagged because it contains a protected name: "${foundProtectedName}". It will be reviewed by an admin.`;
+                }
+            }
+        } catch (error) {
+            console.error("Error checking protected names:", error);
+        }
       }
 
       const contentToCheck = `${data.title} ${data.content || ''}`;
@@ -289,7 +320,7 @@ export default function EditPostPage() {
         customFields: filteredCustomFields,
         images: newImages,
         hasPendingImages: hasPendingImages,
-        status: isFlaggedForReview ? postStatus : post.status, // Only update status if newly flagged
+        status: postStatus,
         isFlagged: isFlaggedForReview,
         updatedAt: serverTimestamp(),
       };

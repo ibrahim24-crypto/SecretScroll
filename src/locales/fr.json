@@ -114,6 +114,7 @@
     "manageAdmins": "Gérer les admins",
     "wordFilter": "Filtre de mots",
     "protectedNames": "Noms protégés",
+    "forbiddenNames": "Noms Interdits",
     "searchPlaceholder": "Rechercher des posts...",
     "showFlaggedOnly": "Afficher uniquement les signalés",
     "flagged": "Signalé",
@@ -158,13 +159,17 @@
     "wordRemoved": "Le mot \"{word}\" a été supprimé.",
     "protectedNamesTitle": "Gérer les noms protégés",
     "protectedNamesDescription": "Bloquez les posts si leur titre contient l'un de ces noms. Ceci est insensible à la casse.",
+    "forbiddenNamesTitle": "Gérer les noms interdits",
+    "forbiddenNamesDescription": "Bloquez les publications si leur titre contient une version obscurcie de l'un de ces noms.",
     "addNamePlaceholder": "Ajouter un nouveau nom...",
     "addName": "Ajouter le nom",
     "noNames": "Aucun nom protégé pour le moment.",
     "nameExistsTitle": "Le nom existe déjà",
     "nameExistsDescription": "\"{name}\" est déjà dans la liste.",
     "nameAdded": "Le nom \"{name}\" a été protégé.",
-    "nameRemoved": "Le nom \"{name}\" n'est plus protégé."
+    "nameRemoved": "Le nom \"{name}\" n'est plus protégé.",
+    "forbiddenNameAdded": "Le nom \"{name}\" a été ajouté à la liste des interdits.",
+    "forbiddenNameRemoved": "Le nom \"{name}\" a été retiré de la liste des interdits."
   },
   "post": {
     "postedOn": "Publié le {date}",

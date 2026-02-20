@@ -114,6 +114,7 @@
     "manageAdmins": "Manage Admins",
     "wordFilter": "Word Filter",
     "protectedNames": "Protected Names",
+    "forbiddenNames": "Forbidden Names",
     "searchPlaceholder": "Search posts...",
     "showFlaggedOnly": "Show Flagged Only",
     "flagged": "Flagged",
@@ -158,13 +159,17 @@
     "wordRemoved": "The word \"{word}\" has been removed.",
     "protectedNamesTitle": "Manage Protected Names",
     "protectedNamesDescription": "Block posts if their title contains any of these names. This is case-insensitive.",
+    "forbiddenNamesTitle": "Manage Forbidden Names",
+    "forbiddenNamesDescription": "Block posts if their title contains an obfuscated version of one of these names.",
     "addNamePlaceholder": "Add a new name...",
     "addName": "Add Name",
     "noNames": "No protected names yet.",
     "nameExistsTitle": "Name already exists",
     "nameExistsDescription": "\"{name}\" is already in the list.",
     "nameAdded": "The name \"{name}\" has been protected.",
-    "nameRemoved": "The name \"{name}\" is no longer protected."
+    "nameRemoved": "The name \"{name}\" is no longer protected.",
+    "forbiddenNameAdded": "The name \"{name}\" has been added to the forbidden list.",
+    "forbiddenNameRemoved": "The name \"{name}\" has been removed from the forbidden list."
   },
   "post": {
     "postedOn": "Posted on {date}",

@@ -113,6 +113,7 @@
     "manageAdmins": "إدارة المسؤولين",
     "wordFilter": "مرشح الكلمات",
     "protectedNames": "الأسماء المحمية",
+    "forbiddenNames": "الأسماء الممنوعة",
     "searchPlaceholder": "البحث في المنشورات...",
     "showFlaggedOnly": "إظهار المبلغ عنها فقط",
     "flagged": "تم الإبلاغ عنه",
@@ -157,13 +158,17 @@
     "wordRemoved": "تمت إزالة الكلمة \"{word}\".",
     "protectedNamesTitle": "إدارة الأسماء المحمية",
     "protectedNamesDescription": "حظر المشاركات إذا كان عنوانها يحتوي على أي من هذه الأسماء. هذا غير حساس لحالة الأحرف.",
+    "forbiddenNamesTitle": "إدارة الأسماء الممنوعة",
+    "forbiddenNamesDescription": "حظر المشاركات إذا كان عنوانها يحتوي على نسخة محرفة من أحد هذه الأسماء.",
     "addNamePlaceholder": "أضف اسمًا جديدًا...",
     "addName": "أضف الاسم",
     "noNames": "لا توجد أسماء محمية حتى الآن.",
     "nameExistsTitle": "الاسم موجود بالفعل",
     "nameExistsDescription": "\"{name}\" موجود بالفعل في القائمة.",
     "nameAdded": "تمت حماية الاسم \"{name}\".",
-    "nameRemoved": "لم يعد الاسم \"{name}\" محميًا."
+    "nameRemoved": "لم يعد الاسم \"{name}\" محميًا.",
+    "forbiddenNameAdded": "تمت إضافة الاسم \"{name}\" إلى القائمة الممنوعة.",
+    "forbiddenNameRemoved": "تمت إزالة الاسم \"{name}\" من القائمة الممنوعة."
   },
   "post": {
     "postedOn": "نشر في {date}",
