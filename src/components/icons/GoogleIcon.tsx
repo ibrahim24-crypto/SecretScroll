@@ -2,7 +2,7 @@ import type { SVGProps } from 'react';
 
 export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
   return (
-    <svg xmlnsXlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 268.1522 273.8827" overflow="hidden" xmlSpacePreserve="preserve" {...props}>
+    <svg xmlnsXlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 268.1522 273.8827" overflow="hidden" xmlSpace="preserve" {...props}>
       <defs>
         <linearGradient id="a_g">
           <stop offset="0" stopColor="#0fbc5c"/>

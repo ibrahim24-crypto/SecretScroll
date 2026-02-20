@@ -208,7 +208,7 @@ function PostManager() {
                                     <AvatarImage src={undefined} />
                                     <AvatarFallback>{post.authorDisplayName?.charAt(0) || 'U'}</AvatarFallback>
                                 </Avatar>
-                                <span>{post.authorDisplayName || (post.authorUid === 'anonymous_guest' ? 'Guest' : 'Unknown User')}</span>
+                                <span>{post.authorDisplayName || 'Unknown User'}</span>
                                 <span>•</span>
                                 <span>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}</span>
                             </CardDescription>
@@ -711,9 +711,9 @@ function SettingsManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5 text-xs">
+                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm">
                                     <span>{word}</span>
-                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex-shrink-0 items-center justify-center rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed h-4 w-4">
+                                    <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex flex-shrink-0 items-center justify-center rounded-full hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed h-5 w-5">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>
@@ -826,9 +826,9 @@ function ProtectedNamesManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5 text-xs">
+                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm">
                                     <span>{name}</span>
-                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex-shrink-0 items-center justify-center rounded-full hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed h-4 w-4">
+                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex flex-shrink-0 items-center justify-center rounded-full hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed h-5 w-5">
                                         <X className="h-3 w-3" />
                                     </button>
                                 </Badge>
