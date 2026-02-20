@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition, useCallback } from 'react';
+import { useEffect, useState, useTransition, useCallback, useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -128,6 +128,7 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
 // #region Post Manager
 function PostManager() {
     const [posts, setPosts] = useState<Post[]>([]);
+    const [users, setUsers] = useState<Record<string, UserProfile>>({});
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Record<string, boolean>>({});
     const [filter, setFilter] = useState('');
@@ -136,16 +137,25 @@ function PostManager() {
     const { t } = useLocale();
     const { userProfile } = useAuth();
 
-    const fetchPosts = useCallback(async () => {
+    const fetchPostsAndUsers = useCallback(async () => {
         setLoading(true);
         try {
             const postsRef = collection(db, 'posts');
-            const q = query(postsRef, orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
-            const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
+            const pQuery = query(postsRef, orderBy('createdAt', 'desc'));
+            const postsSnapshot = await getDocs(pQuery);
+            const postsData = postsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
+
+            const usersRef = collection(db, 'users');
+            const usersSnapshot = await getDocs(usersRef);
+            const usersData = usersSnapshot.docs.reduce((acc, doc) => {
+                acc[doc.id] = { uid: doc.id, ...doc.data() } as UserProfile;
+                return acc;
+            }, {} as Record<string, UserProfile>);
+            setUsers(usersData);
+
         } catch (error) {
-           console.error("Error fetching posts:", error);
+           console.error("Error fetching posts and users:", error);
            toast({ title: t('toasts.error'), description: t('toasts.fetchError'), variant: 'destructive' });
         } finally {
           setLoading(false);
@@ -153,8 +163,8 @@ function PostManager() {
     }, [toast, t]);
 
     useEffect(() => {
-      fetchPosts();
-    }, [fetchPosts]);
+      fetchPostsAndUsers();
+    }, [fetchPostsAndUsers]);
 
     const handleDeletePost = (postId: string) => {
         if (!userProfile?.permissions?.delete_posts) {
@@ -199,6 +209,7 @@ function PostManager() {
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {loading ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 w-full" />) :
                 filteredPosts.map(post => {
+                    const author = users[post.authorUid];
                     return (
                     <Card key={post.id} className={cn(post.isFlagged && "border-destructive")}>
                         <CardHeader>
@@ -206,17 +217,21 @@ function PostManager() {
                                 {post.title}
                                 {post.isFlagged && <Badge variant="destructive">{t('admin.flagged')}</Badge>}
                             </CardTitle>
-                             <CardDescription className="flex items-center gap-2 text-xs">
-                                <Avatar className="h-5 w-5">
-                                    <AvatarImage src={undefined} />
-                                    <AvatarFallback>{post.authorDisplayName?.charAt(0) || 'A'}</AvatarFallback>
+                             <CardDescription className="flex items-center gap-3 pt-1">
+                                <Avatar className="h-8 w-8">
+                                    <AvatarImage src={author?.photoURL || undefined} alt={author?.displayName || ''} />
+                                    <AvatarFallback>{author?.displayName?.charAt(0) || post.authorDisplayName?.charAt(0) || 'A'}</AvatarFallback>
                                 </Avatar>
-                                <span>{post.authorDisplayName || t('userMenu.anonymousUser')}</span>
-                                <span>•</span>
-                                <span>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}</span>
+                                <div className='text-xs'>
+                                    <p className="font-semibold text-foreground">{author?.displayName || post.authorDisplayName || t('userMenu.anonymousUser')}</p>
+                                    <p className="text-muted-foreground">{author?.email || t('userMenu.anonymousUser')}</p>
+                                </div>
                             </CardDescription>
                         </CardHeader>
-                        <CardContent><p className="p-3 bg-muted rounded-md line-clamp-3">{post.content}</p></CardContent>
+                        <CardContent>
+                            <p className="p-3 bg-muted rounded-md line-clamp-3 text-sm">{post.content}</p>
+                            <p className="text-xs text-muted-foreground mt-2">{t('admin.joined', { date: post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : 'N/A' })}</p>
+                        </CardContent>
                         <CardFooter className="flex justify-end gap-2">
                             {userProfile?.permissions?.delete_posts && (
                                 <AlertDialog>
@@ -625,7 +640,7 @@ function SettingsManager() {
     const [isUpdating, startTransition] = useTransition();
     const { toast } = useToast();
     const { t } = useLocale();
-    const settingsRef = doc(db, 'settings', 'config');
+    const settingsRef = useMemo(() => doc(db, 'settings', 'config'), []);
 
     const fetchSettings = useCallback(async () => {
         setLoading(true);
@@ -718,12 +733,12 @@ function SettingsManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <div key={word} className="inline-flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
+                                <div key={word} className="flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
                                     <span>{word}</span>
                                     <button 
                                         onClick={() => handleRemoveWord(word)} 
                                         disabled={isUpdating} 
-                                        className="-mr-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${word}`}
                                     >
                                         <X className="h-3.5 w-3.5" />
@@ -747,7 +762,7 @@ function ProtectedNamesManager() {
     const [isUpdating, startTransition] = useTransition();
     const { toast } = useToast();
     const { t } = useLocale();
-    const settingsRef = doc(db, 'settings', 'protectedNames');
+    const settingsRef = useMemo(() => doc(db, 'settings', 'protectedNames'), []);
 
     const fetchSettings = useCallback(async () => {
         setLoading(true);
@@ -839,12 +854,12 @@ function ProtectedNamesManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <div key={name} className="inline-flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
+                                <div key={name} className="flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
                                     <span>{name}</span>
                                     <button 
                                         onClick={() => handleRemoveName(name)} 
                                         disabled={isUpdating} 
-                                        className="-mr-1.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
                                         aria-label={`Remove ${name}`}
                                     >
                                         <X className="h-3.5 w-3.5" />
