@@ -52,6 +52,9 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
                 description: t('toasts.popupBlockedDescription'),
                 variant: 'destructive',
             });
+            // Fallback to redirect. This will navigate away from the page.
+            signInWithRedirect(auth, googleAuthProvider);
+            return;
         } else if (error.code === 'auth/popup-closed-by-user') {
             console.log('Sign-in popup closed by user.');
         } else {
@@ -62,7 +65,6 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
                 variant: 'destructive',
             });
         }
-    } finally {
         setLoading(null);
     }
   };

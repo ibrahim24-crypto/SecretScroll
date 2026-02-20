@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth, googleAuthProvider } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -21,7 +21,16 @@ export function LoginButton() {
         title: t('toasts.signedInSuccess'),
       });
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-blocked') {
+        toast({
+            title: t('toasts.popupBlockedTitle'),
+            description: t('toasts.popupBlockedDescription'),
+            variant: 'destructive',
+        });
+        // Fallback to redirect.
+        signInWithRedirect(auth, googleAuthProvider);
+        return;
+      } else if (error.code === 'auth/popup-closed-by-user') {
         console.log('Sign-in popup closed by user.');
       } else {
         console.error('Error signing in with Google: ', error);
@@ -31,9 +40,8 @@ export function LoginButton() {
           variant: 'destructive',
         });
       }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (

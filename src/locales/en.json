@@ -76,7 +76,7 @@
     "authFailed": "Authentication failed",
     "authFailedDescription": "Could not sign you in. Please try again.",
     "popupBlockedTitle": "Popup Blocked",
-    "popupBlockedDescription": "Your browser blocked the sign-in window. Please allow popups for this site and try again.",
+    "popupBlockedDescription": "Your browser may be blocking the sign-in popup. We will attempt to use a page redirect to sign you in instead.",
     "welcomeUser": "Welcome, {name}!",
     "nameRequired": "Please enter a name.",
     "nameTakenTitle": "Name already taken",
