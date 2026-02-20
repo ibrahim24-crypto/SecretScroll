@@ -70,8 +70,13 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId) || isSuperAdmin() || (isAdmin() && hasPermission('delete_comments'));
     }
 
-    match /settings/{settingId} {
+    match /settings/config {
       allow read, write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
+    }
+
+    match /settings/protectedNames {
+      allow read: if true;
+      allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_protected_names'));
     }
   }
 }

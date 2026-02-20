@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   manage_admins: 'Grant or revoke admin privileges and their permissions.',
   delete_users: 'Delete any user account from the application.',
   manage_forbidden_words: 'Manage the list of forbidden words.',
+  manage_protected_names: 'Manage a list of protected names to block from post titles.',
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

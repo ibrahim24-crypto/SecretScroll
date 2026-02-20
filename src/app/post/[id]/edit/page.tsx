@@ -178,11 +178,40 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
+      // 1. Check against protected names list
+      try {
+          const protectedNamesRef = doc(db, 'settings', 'protectedNames');
+          const protectedNamesSnap = await getDoc(protectedNamesRef);
+          if (protectedNamesSnap.exists()) {
+              const protectedNames = protectedNamesSnap.data().names as string[];
+              const titleLower = data.title.toLowerCase();
+              const titleReversedLower = titleLower.split('').reverse().join('');
+
+              const foundProtectedName = protectedNames.find(name => 
+                  titleLower.includes(name.toLowerCase()) || titleReversedLower.includes(name.toLowerCase())
+              );
+
+              if (foundProtectedName) {
+                  toast({
+                      variant: "destructive",
+                      title: "Post Blocked",
+                      description: `The title contains a protected name or a variation of it: "${foundProtectedName}". Please change the title.`,
+                      duration: 9000,
+                  });
+                  return; // Block submission
+              }
+          }
+      } catch (error) {
+          console.error("Error checking protected names:", error);
+          // Don't block submission if this check fails, but log it.
+      }
+
+
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
       if (contentToCheck.trim()) {
         try {
-          // 1. Check against local forbidden words list first
+          // 2. Check against local forbidden words list first
           const settingsRef = doc(db, 'settings', 'config');
           const settingsSnap = await getDoc(settingsRef);
           if (settingsSnap.exists()) {
@@ -202,7 +231,7 @@ export default function EditPostPage() {
               }
           }
 
-          // 2. If local check passes, check against external API
+          // 3. If local check passes, check against external API
           const checkRes = await fetch('/api/check-content', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

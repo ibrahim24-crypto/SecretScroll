@@ -37,6 +37,7 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'manage_admins', label: 'Admin Management', description: 'Can grant or revoke admin privileges and permissions.' },
     { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },
     { id: 'manage_forbidden_words', label: 'Word Filter', description: 'Can manage the list of forbidden words.' },
+    { id: 'manage_protected_names', label: 'Protected Names', description: 'Manage a list of protected names to block from post titles.' },
 ];
 
 const permissionsSchema = z.object({
@@ -125,6 +126,7 @@ function PermissionsDialog({ admin, onUpdate, children }: { admin: UserProfile; 
 // #region Post Manager
 function PostManager() {
     const [posts, setPosts] = useState<Post[]>([]);
+    const [authors, setAuthors] = useState<Record<string, UserProfile>>({});
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<Record<string, boolean>>({});
     const [filter, setFilter] = useState('');
@@ -140,6 +142,21 @@ function PostManager() {
             const querySnapshot = await getDocs(q);
             const postsData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
             setPosts(postsData);
+
+            // Fetch unique authors
+            const authorIds = [...new Set(postsData.map(p => p.authorUid).filter(id => id !== 'anonymous_guest'))];
+            const fetchedAuthors: Record<string, UserProfile> = {};
+            
+            const authorPromises = authorIds.map(async (authorId) => {
+                const userRef = doc(db, 'users', authorId);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists()) {
+                    fetchedAuthors[authorId] = userSnap.data() as UserProfile;
+                }
+            });
+            await Promise.all(authorPromises);
+            setAuthors(fetchedAuthors);
+
         } catch (error) {
            console.error("Error fetching posts:", error);
            toast({ title: 'Error', description: 'Could not fetch posts.', variant: 'destructive' });
@@ -194,15 +211,29 @@ function PostManager() {
             </Card>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {loading ? [...Array(3)].map((_, i) => <Skeleton key={i} className="h-60 w-full" />) :
-                filteredPosts.map(post => (
+                filteredPosts.map(post => {
+                    const author = authors[post.authorUid];
+                    return (
                     <Card key={post.id} className={cn(post.isFlagged && "border-destructive")}>
                         <CardHeader>
                             <CardTitle className="flex justify-between items-start">
                                 {post.title}
                                 {post.isFlagged && <Badge variant="destructive">Flagged</Badge>}
                             </CardTitle>
-                            <CardDescription>
-                                {post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}
+                             <CardDescription className="flex items-center gap-2 text-xs">
+                                {author ? (
+                                    <>
+                                        <Avatar className="h-5 w-5">
+                                            <AvatarImage src={author.photoURL || undefined} />
+                                            <AvatarFallback>{author.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                                        </Avatar>
+                                        <span>{author.displayName || author.email}</span>
+                                    </>
+                                ) : (
+                                    <span>By {post.authorUid === 'anonymous_guest' ? 'Guest' : '...'}</span>
+                                )}
+                                <span>•</span>
+                                <span>{post.createdAt ? formatDistanceToNow(post.createdAt.toDate(), { addSuffix: true }) : ''}</span>
                             </CardDescription>
                         </CardHeader>
                         <CardContent><p className="p-3 bg-muted rounded-md line-clamp-3">{post.content}</p></CardContent>
@@ -226,7 +257,7 @@ function PostManager() {
                             )}
                         </CardFooter>
                     </Card>
-                ))}
+                )})}
             </div>
              {!loading && filteredPosts.length === 0 && <p className="text-center text-muted-foreground py-8">No posts found.</p>}
         </div>
@@ -627,7 +658,7 @@ function SettingsManager() {
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, settingsRef]);
 
     useEffect(() => {
         fetchSettings();
@@ -715,6 +746,119 @@ function SettingsManager() {
 }
 // #endregion
 
+// #region Protected Names Manager
+function ProtectedNamesManager() {
+    const [protectedNames, setProtectedNames] = useState<string[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [newName, setNewName] = useState('');
+    const [isUpdating, startTransition] = useTransition();
+    const { toast } = useToast();
+    const settingsRef = doc(db, 'settings', 'protectedNames');
+
+    const fetchSettings = useCallback(async () => {
+        setLoading(true);
+        try {
+            const docSnap = await getDoc(settingsRef);
+            if (docSnap.exists()) {
+                setProtectedNames(docSnap.data().names || []);
+            } else {
+                await setDoc(settingsRef, { names: [] });
+                setProtectedNames([]);
+            }
+        } catch (e) {
+            console.error("Error fetching protected names:", e);
+            toast({ title: 'Error', description: 'Could not load protected names.', variant: 'destructive'});
+        } finally {
+            setLoading(false);
+        }
+    }, [toast, settingsRef]);
+
+    useEffect(() => {
+        fetchSettings();
+    }, [fetchSettings]);
+
+    const handleAddName = () => {
+        startTransition(async () => {
+            const name = newName.trim().toLowerCase();
+            if (!name) return;
+            if (protectedNames.includes(name)) {
+                toast({ title: "Name already exists", description: `"${name}" is already in the list.`, variant: "default" });
+                return;
+            }
+
+            const updatedNames = [...protectedNames, name].sort();
+            try {
+                await setDoc(settingsRef, { names: updatedNames }, { merge: true });
+                toast({ title: 'Success!', description: `The name "${name}" has been protected.` });
+                setProtectedNames(updatedNames);
+                setNewName('');
+            } catch (error) {
+                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
+                errorEmitter.emit('permission-error', permissionError);
+            }
+        });
+    };
+
+    const handleRemoveName = (nameToRemove: string) => {
+        startTransition(async () => {
+            const updatedNames = protectedNames.filter(n => n !== nameToRemove);
+            try {
+                await setDoc(settingsRef, { names: updatedNames }, { merge: true });
+                toast({ title: 'Success!', description: `The name "${nameToRemove}" is no longer protected.` });
+                setProtectedNames(updatedNames);
+            } catch (error) {
+                const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
+                errorEmitter.emit('permission-error', permissionError);
+            }
+        });
+    };
+
+    if (loading) {
+        return <Skeleton className="h-64 w-full" />
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Manage Protected Names</CardTitle>
+                <CardDescription>Block posts if their title contains any of these names. This is case-insensitive. Changes are saved automatically.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                    <Input 
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        placeholder="Add a new name to protect..."
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddName(); } }}
+                        disabled={isUpdating}
+                    />
+                    <Button onClick={handleAddName} disabled={isUpdating || !newName.trim()}>
+                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Add Name
+                    </Button>
+                </div>
+                <div className="border rounded-md p-4 space-y-2 h-64 overflow-y-auto">
+                    {protectedNames.length === 0 ? (
+                        <p className="text-muted-foreground text-center">No protected names yet.</p>
+                    ) : (
+                         <div className="flex flex-wrap gap-2">
+                            {protectedNames.map(name => (
+                                <Badge key={name} variant="secondary" className="flex items-center gap-1 text-base py-1">
+                                    {name}
+                                    <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="rounded-full hover:bg-muted-foreground/20 p-0.5 ml-1 disabled:opacity-50 disabled:cursor-not-allowed">
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                </Badge>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </CardContent>
+        </Card>
+    );
+}
+// #endregion
+
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -742,6 +886,7 @@ export function AdminDashboard() {
           {userProfile?.role === 'admin' && <TabsTrigger value="users">Manage Users</TabsTrigger>}
           {userProfile?.permissions?.manage_admins && <TabsTrigger value="admins">Manage Admins</TabsTrigger>}
           {userProfile?.permissions?.manage_forbidden_words && <TabsTrigger value="settings">Word Filter</TabsTrigger>}
+          {userProfile?.permissions?.manage_protected_names && <TabsTrigger value="names">Protected Names</TabsTrigger>}
         </TabsList>
       </div>
       <TabsContent value="posts" className="mt-4">
@@ -765,6 +910,11 @@ export function AdminDashboard() {
        {userProfile?.permissions?.manage_forbidden_words && (
         <TabsContent value="settings" className="mt-4">
           <SettingsManager />
+        </TabsContent>
+       )}
+       {userProfile?.permissions?.manage_protected_names && (
+        <TabsContent value="names" className="mt-4">
+          <ProtectedNamesManager />
         </TabsContent>
        )}
     </Tabs>
