@@ -2,34 +2,39 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
 
     function isSuperAdmin() {
-      return request.auth != null && 
+      return request.auth != null &&
              request.auth.token.email == 'ibrahimezzine09@gmail.com';
     }
 
-    // This function should only be called after checking if the user is authenticated.
-    function getPermissions() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions;
+    function userDocExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
-    
-    function hasPermission(permission) {
-      // It is now safe to call getPermissions() directly because isAdmin() gatekeeps it.
-      return getPermissions()[permission] == true;
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isAdmin() {
-      // IMPORTANT FIX: Check if the user document exists before trying to read its role.
-      // This prevents errors on first login before the user document is created.
       return request.auth != null &&
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+             userDocExists() &&
+             getUserData().role == 'admin';
     }
-  
+
+    function getPermissions() {
+      return userDocExists() ? getUserData().permissions : {};
+    }
+
+    function hasPermission(permission) {
+      // This is now safe because isAdmin() already checks for document existence.
+      return isAdmin() && getPermissions()[permission] == true;
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
