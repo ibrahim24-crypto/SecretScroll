@@ -18,12 +18,15 @@ service cloud.firestore {
     }
     
     function hasPermission(permission) {
-      // This is safe because it's always used after isAdmin(), which checks for auth.
+      // It is now safe to call getPermissions() directly because isAdmin() gatekeeps it.
       return getPermissions()[permission] == true;
     }
 
     function isAdmin() {
-      return request.auth != null && 
+      // IMPORTANT FIX: Check if the user document exists before trying to read its role.
+      // This prevents errors on first login before the user document is created.
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   
@@ -53,11 +56,11 @@ service cloud.firestore {
       ) || (
         // Admins can manage posts (approve/reject/edit images)
         isAdmin() && hasPermission('approve_pictures') &&
-        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'images', 'hasPendingImages', 'updatedAt'])
+        request.resource.data.diff(resource.data).hasAny(['status', 'images', 'hasPendingImages', 'updatedAt'])
       ) || (
         // The author can edit their own post content
         isOwner(resource.data.authorUid) &&
-        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
+        request.resource.data.diff(resource.data).subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
       )
       || isSuperAdmin();
 

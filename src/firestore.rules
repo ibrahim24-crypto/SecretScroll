@@ -21,7 +21,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return request.auth != null && 
+      // IMPORTANT FIX: Check if the user document exists before trying to read its role.
+      // This prevents errors on first login before the user document is created.
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
   
@@ -39,20 +42,20 @@ service cloud.firestore {
     }
 
     match /posts/{postId} {
-      allow read: if true;
+      allow read: if resource.data.status == 'approved' || isAdmin() || isOwner(resource.data.authorUid);
       allow create: if request.auth != null;
       allow update: if (
         // Any authenticated user can vote or update comment count
-        request.auth != null &&
+        request.auth != null && resource.data.status == 'approved' &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['upvotes', 'downvotes', 'commentCount'])
       ) || (
-        // Admins can approve images
+        // Admins can approve/reject posts
         isAdmin() && hasPermission('approve_pictures') &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['images', 'hasPendingImages'])
+        request.resource.data.diff(resource.data).hasAny(['status', 'images', 'hasPendingImages', 'updatedAt'])
       ) || (
         // The author can edit their own post content
         isOwner(resource.data.authorUid) &&
-        request.resource.data.diff(resource.data).affectedKeys().subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
+        request.resource.data.diff(resource.data).subsetOf(['title', 'content', 'category', 'eventDate', 'customFields', 'images', 'hasPendingImages', 'updatedAt', 'isFlagged'])
       )
       || isSuperAdmin();
       allow delete: if isOwner(resource.data.authorUid) || isSuperAdmin() || (isAdmin() && hasPermission('delete_posts'));
