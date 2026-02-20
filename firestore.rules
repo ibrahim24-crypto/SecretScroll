@@ -72,11 +72,13 @@ service cloud.firestore {
     }
 
     match /settings/config {
-      allow read, write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
     }
 
     match /settings/protectedNames {
-      allow read, write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_protected_names'));
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_protected_names'));
     }
   }
 }
