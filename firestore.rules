@@ -71,6 +71,8 @@ service cloud.firestore {
       allow delete: if isOwner(resource.data.userId) || isSuperAdmin() || (isAdmin() && hasPermission('delete_comments'));
     }
 
+    // This is the fix: Allow any authenticated user to READ settings,
+    // but only admins with specific permissions can WRITE them.
     match /settings/config {
       allow read: if request.auth != null;
       allow write: if isSuperAdmin() || (isAdmin() && hasPermission('manage_forbidden_words'));
