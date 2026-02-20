@@ -441,8 +441,8 @@ function UserManager() {
                             <AvatarFallback>{user.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                            <CardTitle className="text-base">{user.displayName}</CardTitle>
-                            <CardDescription className="text-xs break-all">{user.email}</CardDescription>
+                            <CardTitle className="text-base">{user.displayName || 'Anonymous'}</CardTitle>
+                            <CardDescription className="text-xs break-all">{user.email || 'No Email'}</CardDescription>
                         </div>
                          {user.role === 'admin' && <Badge variant="secondary">Admin</Badge>}
                     </CardHeader>
@@ -627,8 +627,8 @@ function SettingsManager() {
             if (docSnap.exists()) {
                 setSettings(docSnap.data() as AppSettings);
             } else {
-                // If the doc doesn't exist, initialize it
-                await setDoc(settingsRef, { forbiddenWords: [] });
+                // If the doc doesn't exist, initialize it safely
+                await setDoc(settingsRef, { forbiddenWords: [] }, { merge: true });
                 setSettings({ forbiddenWords: [] });
             }
         } catch (e) {
@@ -711,7 +711,7 @@ function SettingsManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {settings.forbiddenWords.map(word => (
-                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm hover:bg-secondary">
+                                <Badge key={word} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm">
                                     <span>{word}</span>
                                     <button onClick={() => handleRemoveWord(word)} disabled={isUpdating} className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/10">
                                         <X className="h-3 w-3" />
@@ -743,7 +743,7 @@ function ProtectedNamesManager() {
             if (docSnap.exists()) {
                 setProtectedNames(docSnap.data().names || []);
             } else {
-                await setDoc(settingsRef, { names: [] });
+                await setDoc(settingsRef, { names: [] }, { merge: true });
                 setProtectedNames([]);
             }
         } catch (e) {
@@ -826,7 +826,7 @@ function ProtectedNamesManager() {
                     ) : (
                          <div className="flex flex-wrap gap-2">
                             {protectedNames.map(name => (
-                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm hover:bg-secondary">
+                                <Badge key={name} variant="secondary" className="inline-flex items-center gap-x-1.5 text-sm">
                                     <span>{name}</span>
                                     <button onClick={() => handleRemoveName(name)} disabled={isUpdating} className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/10 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-white/10">
                                         <X className="h-3 w-3" />
@@ -861,7 +861,11 @@ export function AdminDashboard() {
   }
   
   return (
-    <Tabs defaultValue="posts" className="w-full">
+    <Tabs 
+      key={JSON.stringify(userProfile?.permissions)} 
+      defaultValue="posts" 
+      className="w-full"
+    >
       <div className="w-full overflow-x-auto border-b">
         <TabsList className="inline-flex">
           <TabsTrigger value="posts">Manage Posts</TabsTrigger>
