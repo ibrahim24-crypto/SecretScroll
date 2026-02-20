@@ -93,33 +93,29 @@ export const isSocialPlatform = (platform: string): boolean => {
 };
 
 export const getSocialUsername = (platform: string, value: string): string => {
-    // If the value doesn't look like a URL at all, return it.
-    if (!value.includes('/') && !value.includes('?') && !value.includes('.')) {
+    // If the value is just a simple username, return it directly.
+    if (!value.includes('/') && !value.includes('.')) {
         return value;
     }
 
     try {
-        // Ensure there's a protocol for the URL constructor to work reliably
-        const fullUrl = value.startsWith('http') ? value : `https://${value}`;
-        const url = new URL(fullUrl);
-        const pathParts = url.pathname.split('/').filter(p => p.length > 0);
+        // 1. Remove query string
+        let cleanValue = value.split('?')[0];
 
-        if (pathParts.length > 0) {
-            // For most platforms like instagram, twitter, github, the username is the first path segment.
-            return pathParts[0];
+        // 2. Remove trailing slash if it exists
+        if (cleanValue.endsWith('/')) {
+            cleanValue = cleanValue.slice(0, -1);
         }
+        
+        // 3. Get the last part of the path
+        const lastSegment = cleanValue.substring(cleanValue.lastIndexOf('/') + 1);
+
+        // Return the last segment if it's not empty, otherwise return the original value
+        return lastSegment || value;
     } catch (e) {
-        // This will catch invalid URLs. We can fall back to a regex.
+        // Fallback to original value if any error occurs
+        return value;
     }
-    
-    // Regex fallback for cases where URL constructor fails or for non-standard URLs.
-    // It looks for a common domain pattern, followed by a slash, and captures the next segment.
-    const match = value.match(/(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}\/([^\/?#&]+)/);
-    if (match && match[1]) {
-        return match[1];
-    }
-    
-    return value; // Return original value as the last resort.
 };
 
 
