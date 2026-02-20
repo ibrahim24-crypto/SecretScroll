@@ -47,8 +47,15 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
       onComplete();
     } catch (error: any) {
       if (error.code === 'auth/popup-closed-by-user') {
-        // The user intentionally closed the popup. This is not an error we need to show.
         console.log('Sign-in popup closed by user.');
+      } else if (error.code === 'auth/popup-blocked') {
+        console.error('Error signing in with Google: ', error);
+        toast({
+          title: t('toasts.popupBlockedTitle'),
+          description: t('toasts.popupBlockedDescription'),
+          variant: 'destructive',
+          duration: 9000,
+        });
       } else {
         console.error('Error signing in with Google: ', error);
         toast({
