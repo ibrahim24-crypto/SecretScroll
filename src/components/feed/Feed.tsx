@@ -14,9 +14,8 @@ import { Header } from '../layout/Header';
 import { LoginButton } from '../auth/LoginButton';
 import { useLocale } from '@/hooks/useLocale';
 
-const BATCH_SIZE = 5; // Smaller batch for mobile-first full-screen view
+const BATCH_SIZE = 10;
 
-// A special component for the first "reel" on mobile
 function WelcomeReel() {
     const { user } = useAuth();
     const { t } = useLocale();
@@ -41,7 +40,7 @@ function WelcomeReel() {
 }
 
 export function Feed() {
-  const { user } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { t } = useLocale();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,13 +67,25 @@ export function Feed() {
 
   // Real-time listener for the initial posts
   useEffect(() => {
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
+    
     setLoading(true);
-    const q = query(
-      collection(db, 'posts'),
-      where('status', '==', 'approved'),
-      orderBy('createdAt', 'desc'),
-      limit(BATCH_SIZE)
-    );
+    const postsRef = collection(db, 'posts');
+    let q;
+
+    if (userProfile?.role === 'admin') {
+      q = query(postsRef, orderBy('createdAt', 'desc'), limit(BATCH_SIZE));
+    } else {
+      q = query(
+        postsRef,
+        where('status', '==', 'approved'),
+        orderBy('createdAt', 'desc'),
+        limit(BATCH_SIZE)
+      );
+    }
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
@@ -91,19 +102,31 @@ export function Feed() {
     });
 
     return () => unsubscribe();
-  }, [processAndSetUserVotes]);
+  }, [authLoading, userProfile, processAndSetUserVotes]);
   
   const fetchMorePosts = useCallback(async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
     setLoadingMore(true);
 
-    const q = query(
-      collection(db, 'posts'),
-      where('status', '==', 'approved'),
-      orderBy('createdAt', 'desc'),
-      startAfter(lastVisible),
-      limit(BATCH_SIZE)
-    );
+    const postsRef = collection(db, 'posts');
+    let q;
+    
+    if (userProfile?.role === 'admin') {
+        q = query(
+            postsRef,
+            orderBy('createdAt', 'desc'),
+            startAfter(lastVisible),
+            limit(BATCH_SIZE)
+        );
+    } else {
+        q = query(
+            postsRef,
+            where('status', '==', 'approved'),
+            orderBy('createdAt', 'desc'),
+            startAfter(lastVisible),
+            limit(BATCH_SIZE)
+        );
+    }
 
     try {
       const documentSnapshots = await getDocs(q);
@@ -120,7 +143,7 @@ export function Feed() {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, processAndSetUserVotes]);
+  }, [hasMore, loadingMore, lastVisible, processAndSetUserVotes, userProfile]);
 
 
   const lastElementRef = useCallback(node => {
