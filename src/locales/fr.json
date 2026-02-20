@@ -74,8 +74,6 @@
     "signedInSuccess": "Connexion réussie !",
     "authFailed": "Échec de l'authentification",
     "authFailedDescription": "Impossible de vous connecter. Veuillez réessayer.",
-    "popupBlockedTitle": "Popup bloqué",
-    "popupBlockedDescription": "Votre navigateur a bloqué le popup de connexion. Veuillez autoriser les popups pour ce site et réessayer.",
     "welcomeUser": "Bienvenue, {name} !",
     "nameRequired": "Veuillez entrer un nom.",
     "nameTakenTitle": "Nom déjà pris",

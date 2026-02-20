@@ -74,8 +74,6 @@
     "signedInSuccess": "تم تسجيل الدخول بنجاح!",
     "authFailed": "فشل المصادقة",
     "authFailedDescription": "تعذر تسجيل دخولك. يرجى المحاولة مرة أخرى.",
-    "popupBlockedTitle": "تم حظر النافذة المنبثقة",
-    "popupBlockedDescription": "لقد حظر متصفحك النافذة المنبثقة لتسجيل الدخول. يرجى السماح بالنوافذ المنبثقة لهذا الموقع والمحاولة مرة أخرى.",
     "welcomeUser": "أهلاً بك، {name}!",
     "nameRequired": "الرجاء إدخال اسم.",
     "nameTakenTitle": "الاسم مستخدم بالفعل",
