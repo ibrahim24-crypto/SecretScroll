@@ -24,6 +24,8 @@ import type { Post, PostImage } from '@/lib/types';
 import { isSocialPlatform, getSocialPlatformIcon } from '@/lib/socials';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLocale } from '@/hooks/useLocale';
+import levenshtein from 'fast-levenshtein';
+
 
 const postSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
@@ -39,6 +41,52 @@ const postSchema = z.object({
 
 type PostFormValues = z.infer<typeof postSchema>;
 const categories = ['funny', 'deep', 'random', 'advice'] as const;
+
+/**
+ * Checks if the given title contains any variation (typo, reversed words, etc.)
+ * of any name in the protectedNames list.
+ */
+function containsProtectedName(title: string, protectedNames: string[]): boolean {
+  const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+  const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 1);
+
+  for (const protectedName of protectedNames) {
+    const normalizedProtected = protectedName.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+    const protectedWords = normalizedProtected.split(/\s+/).filter(w => w.length > 1);
+
+    // 1. Direct check (original and reversed full string)
+    const fullString = normalizedProtected.replace(/\s/g, '');
+    const reversedFull = fullString.split('').reverse().join('');
+    const titleCompact = normalizedTitle.replace(/\s/g, '');
+    if (titleCompact.includes(fullString) || titleCompact.includes(reversedFull)) {
+      return true;
+    }
+
+    // 2. Reversed word order check
+    const reversedWordsOrder = protectedWords.slice().reverse().join('');
+    if (titleCompact.includes(reversedWordsOrder)) {
+      return true;
+    }
+
+    // 3. Fuzzy match on each word (allow small typos)
+    const THRESHOLD = 2; // max edits (insert/delete/substitute) per word
+    let matchCount = 0;
+    for (const pWord of protectedWords) {
+      for (const tWord of titleWords) {
+        const distance = levenshtein.get(pWord, tWord);
+        if (distance <= THRESHOLD) {
+          matchCount++;
+          break; // this protected word matched some title word
+        }
+      }
+    }
+    // If at least half of the protected words match loosely, flag it
+    if (matchCount >= Math.ceil(protectedWords.length / 2)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 
 export default function EditPostPage() {
@@ -179,7 +227,7 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
-      let postStatus: 'pending' | 'approved' = post.status; // Default to current status
+      let postStatus: 'pending' | 'approved' = 'approved';
       let isFlaggedForReview = false;
       let reviewToastTitle = '';
       let reviewToastDescription = '';
@@ -191,24 +239,11 @@ export default function EditPostPage() {
             const protectedNamesSnap = await getDoc(protectedNamesRef);
             if (protectedNamesSnap.exists()) {
                 const protectedNames = protectedNamesSnap.data().names as string[];
-                const titleLower = data.title.toLowerCase();
-                 const normalizedTitle = titleLower.replace(/[^a-z0-9]/gi, '');
-
-                for (const protectedName of protectedNames) {
-                  const normalizedProtectedName = protectedName.toLowerCase().replace(/[^a-z0-9]/gi, '');
-                  const reversedProtectedName = normalizedProtectedName.split('').reverse().join('');
-                  
-                  if (
-                      titleLower.includes(protectedName.toLowerCase()) || // Direct match
-                      normalizedTitle.includes(normalizedProtectedName) || // Obfuscated match
-                      normalizedTitle.includes(reversedProtectedName) // Reversed match
-                  ) {
-                      postStatus = 'pending';
-                      isFlaggedForReview = true;
-                      reviewToastTitle = 'Post Submitted for Review';
-                      reviewToastDescription = `This post has been flagged because it appears to mention a protected name: "${protectedName}". It will be reviewed by an admin.`;
-                      break; 
-                  }
+                if (containsProtectedName(data.title, protectedNames)) {
+                  postStatus = 'pending';
+                  isFlaggedForReview = true;
+                  reviewToastTitle = 'Post Submitted for Review';
+                  reviewToastDescription = `This post has been flagged because the title appears to mention a protected name. It will be reviewed by an admin.`;
                 }
             }
         } catch (error) {
