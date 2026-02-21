@@ -227,7 +227,7 @@ export default function EditPostPage() {
     if (!post) return;
 
     startTransition(async () => {
-      let postStatus: 'pending' | 'approved' = 'approved';
+      let postStatus: 'pending' | 'approved' | 'rejected' = 'approved';
       let isFlaggedForReview = false;
       let reviewToastTitle = '';
       let reviewToastDescription = '';
@@ -240,10 +240,10 @@ export default function EditPostPage() {
             if (protectedNamesSnap.exists()) {
                 const protectedNames = protectedNamesSnap.data().names as string[];
                 if (containsProtectedName(data.title, protectedNames)) {
-                  postStatus = 'pending';
+                  postStatus = 'rejected';
                   isFlaggedForReview = true;
-                  reviewToastTitle = 'Post Submitted for Review';
-                  reviewToastDescription = `This post has been flagged because the title appears to mention a protected name. It will be reviewed by an admin.`;
+                  reviewToastTitle = 'Post Rejected';
+                  reviewToastDescription = `This post was automatically rejected because its title appears to contain a protected name.`;
                 }
             }
         } catch (error) {
@@ -344,7 +344,12 @@ export default function EditPostPage() {
       updateDoc(postRef, cleanUpdatedData)
         .then(() => {
             if (isFlaggedForReview) {
-                toast({ title: reviewToastTitle, description: reviewToastDescription, duration: 9000 });
+                toast({ 
+                    title: reviewToastTitle, 
+                    description: reviewToastDescription, 
+                    duration: 9000,
+                    variant: postStatus === 'rejected' ? 'destructive' : 'default'
+                });
             } else {
                 toast({ title: t('toasts.postUpdated'), description: t('toasts.postUpdatedDescription') });
             }
