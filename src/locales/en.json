@@ -31,6 +31,7 @@
     "about": "About",
     "terms": "Terms of Use",
     "copyright": "Copyright",
+    "patchNotes": "Patch Notes",
     "signOut": "Sign out",
     "anonymousUser": "Anonymous User",
     "user": "User"
@@ -200,6 +201,7 @@
   "aboutPage": {
     "title": "About Secret Scroll",
     "subtitle": "Uncover secrets, share truths.",
+    "version": "Version 3.0",
     "p1": "Secret Scroll is a platform for anonymous expression. We believe in the power of sharing stories, thoughts, and confessions without the fear of judgment. Our community is built on trust, respect, and the shared human experience.",
     "p2": "Whether you have a funny anecdote, a deep reflection, a random thought, or need some advice, this is your space to share it with the world, protected by anonymity.",
     "p3": "Our mission is to create a safe and open environment where every voice can be heard."
@@ -221,5 +223,19 @@
     "p3": "You agree to use the service responsibly and not to engage in any activity that could harm the service or its users. This includes, but is not limited to, harassment, spamming, and attempting to gain unauthorized access to the system.",
     "h3": "3. Termination",
     "p4": "We may terminate or suspend your access to our service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms."
+  },
+  "patchNotesPage": {
+    "title": "Patch Notes",
+    "subtitle": "See what's new in Secret Scroll.",
+    "v3_title": "Version 3.0: The Emerald Update",
+    "v3_item1": "UI Refresh: Switched to the new 'Slate' theme with a vibrant lime accent for a modern look.",
+    "v3_item2": "Added Patch Notes: This very page was created to keep you updated on all new features and fixes.",
+    "v3_item3": "About Page Update: The 'About' page has been updated to its third version.",
+    "v2_title": "Version 2.0: The Sentinel Update",
+    "v2_item1": "Enhanced Protected Names: Merged and improved name checking to be more powerful and accurate against typos and reversed names.",
+    "v2_item2": "Smarter Moderation Flow: Posts are now correctly approved or rejected based on content, providing a clearer user experience.",
+    "v1_title": "Version 1.0: Initial Release",
+    "v1_item1": "Core Features: Anonymous posting, voting, and commenting system.",
+    "v1_item2": "Admin Dashboard: Tools for content moderation and user management."
   }
 }

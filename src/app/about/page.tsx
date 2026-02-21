@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "@/hooks/useLocale";
+import { Badge } from "@/components/ui/badge";
 
 export default function AboutPage() {
   const { t } = useLocale();
@@ -19,7 +20,10 @@ export default function AboutPage() {
       </header>
 
       <div className="space-y-6">
-        <h1 className="text-4xl font-bold font-headline">{t('aboutPage.title')}</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-4xl font-bold font-headline">{t('aboutPage.title')}</h1>
+          <Badge variant="outline">{t('aboutPage.version')}</Badge>
+        </div>
         <p className="text-lg text-muted-foreground">
           {t('aboutPage.subtitle')}
         </p>

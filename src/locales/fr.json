@@ -31,6 +31,7 @@
     "about": "À propos",
     "terms": "Conditions d'utilisation",
     "copyright": "Droits d'auteur",
+    "patchNotes": "Notes de version",
     "signOut": "Se déconnecter",
     "anonymousUser": "Utilisateur anonyme",
     "user": "Utilisateur"
@@ -200,6 +201,7 @@
   "aboutPage": {
     "title": "À propos de Secret Scroll",
     "subtitle": "Découvrez des secrets, partagez des vérités.",
+    "version": "Version 3.0",
     "p1": "Secret Scroll est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
     "p2": "Que vous ayez une anecdote amusante, une réflexion profonde, une pensée aléatoire ou besoin d'un conseil, c'est votre espace pour le partager avec le monde, protégé par l'anonymat.",
     "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue."
@@ -221,5 +223,19 @@
     "p3": "Vous acceptez d'utiliser le service de manière responsable et de ne pas vous engager dans une activité qui pourrait nuire au service ou à ses utilisateurs. Cela inclut, sans s'y limiter, le harcèlement, le spamming et la tentative d'obtenir un accès non autorisé au système.",
     "h3": "3. Résiliation",
     "p4": "Nous pouvons résilier ou suspendre votre accès à notre service immédiatement, sans préavis ni responsabilité, pour quelque raison que ce soit, y compris, sans limitation, si vous ne respectez pas les Conditions."
+  },
+  "patchNotesPage": {
+    "title": "Notes de version",
+    "subtitle": "Découvrez les nouveautés de Secret Scroll.",
+    "v3_title": "Version 3.0 : La mise à jour Émeraude",
+    "v3_item1": "Refonte de l'interface utilisateur : Passage au nouveau thème 'Slate' avec un accent citron vert vibrant pour un look moderne.",
+    "v3_item2": "Ajout des notes de version : Cette page a été créée pour vous tenir informé de toutes les nouvelles fonctionnalités et corrections.",
+    "v3_item3": "Mise à jour de la page 'À propos' : La page 'À propos' a été mise à jour vers sa troisième version.",
+    "v2_title": "Version 2.0 : La mise à jour Sentinelle",
+    "v2_item1": "Noms protégés améliorés : Fusion et amélioration de la vérification des noms pour être plus puissante et précise contre les fautes de frappe et les noms inversés.",
+    "v2_item2": "Flux de modération plus intelligent : Les posts sont maintenant correctement approuvés ou rejetés en fonction du contenu, offrant une expérience utilisateur plus claire.",
+    "v1_title": "Version 1.0 : Version initiale",
+    "v1_item1": "Fonctionnalités de base : Système de publication, de vote et de commentaire anonyme.",
+    "v1_item2": "Tableau de bord Admin : Outils pour la modération de contenu et la gestion des utilisateurs."
   }
 }

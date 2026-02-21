@@ -17,7 +17,7 @@ type ThemeColorProviderState = {
 };
 
 const initialState: ThemeColorProviderState = {
-  theme: 'purple',
+  theme: 'slate',
   setTheme: () => null,
 };
 
@@ -25,7 +25,7 @@ const ThemeColorContext = createContext<ThemeColorProviderState>(initialState);
 
 export function ColorThemeProvider({
   children,
-  defaultTheme = 'purple',
+  defaultTheme = 'slate',
   storageKey = 'secretscroll-color-theme',
 }: ThemeColorProviderProps) {
   const [theme, setTheme] = useState<ThemeColor>(

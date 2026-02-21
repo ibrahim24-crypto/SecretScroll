@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LayoutDashboard, LogOut, User as UserIcon, Link2, Info, FileText, Copyright } from 'lucide-react';
+import { LayoutDashboard, LogOut, User as UserIcon, Link2, Info, FileText, Copyright, History } from 'lucide-react';
 import { useLocale } from '@/hooks/useLocale';
 
 export function UserMenu() {
@@ -101,6 +101,12 @@ export function UserMenu() {
           </DropdownMenuSubTrigger>
           <DropdownMenuPortal>
             <DropdownMenuSubContent>
+              <DropdownMenuItem asChild>
+                <Link href="/patch-notes">
+                  <History className="mr-2 h-4 w-4" />
+                  <span>{t('userMenu.patchNotes')}</span>
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/about">
                   <Info className="mr-2 h-4 w-4" />
