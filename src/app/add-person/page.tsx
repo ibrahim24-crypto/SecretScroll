@@ -139,36 +139,6 @@ export default function CreatePostPage() {
       let reviewToastTitle = '';
       let reviewToastDescription = '';
 
-      // New Forbidden Names check
-      try {
-          const forbiddenNamesRef = doc(db, 'settings', 'forbiddenNames');
-          const forbiddenNamesSnap = await getDoc(forbiddenNamesRef);
-          if (forbiddenNamesSnap.exists() && !isFlaggedForReview) {
-              const forbiddenNames = forbiddenNamesSnap.data().names as string[];
-              const titleLower = data.title.toLowerCase();
-              const normalizedTitle = titleLower.replace(/[^a-z0-9]/gi, '');
-
-              for (const forbiddenName of forbiddenNames) {
-                  const normalizedForbiddenName = forbiddenName.toLowerCase().replace(/[^a-z0-9]/gi, '');
-                  const reversedForbiddenName = normalizedForbiddenName.split('').reverse().join('');
-
-                  if (
-                      normalizedTitle.includes(normalizedForbiddenName) || 
-                      normalizedTitle.includes(reversedForbiddenName)
-                  ) {
-                      postStatus = 'pending';
-                      isFlaggedForReview = true;
-                      reviewToastTitle = 'Post Submitted for Review';
-                      reviewToastDescription = `This post has been flagged because the title appears to mention a forbidden name: "${forbiddenName}". It will be reviewed by an admin.`;
-                      break; // exit loop once a match is found
-                  }
-              }
-          }
-      } catch (error) {
-          console.error("Error checking forbidden names:", error);
-      }
-
-
       // 1. Check against protected names list
       if (!isFlaggedForReview) {
         try {
@@ -177,17 +147,23 @@ export default function CreatePostPage() {
             if (protectedNamesSnap.exists()) {
                 const protectedNames = protectedNamesSnap.data().names as string[];
                 const titleLower = data.title.toLowerCase();
-                const titleReversedLower = titleLower.split('').reverse().join('');
+                const normalizedTitle = titleLower.replace(/[^a-z0-9]/gi, '');
 
-                const foundProtectedName = protectedNames.find(name => 
-                    titleLower.includes(name.toLowerCase()) || titleReversedLower.includes(name.toLowerCase())
-                );
+                for (const protectedName of protectedNames) {
+                  const normalizedProtectedName = protectedName.toLowerCase().replace(/[^a-z0-9]/gi, '');
+                  const reversedProtectedName = normalizedProtectedName.split('').reverse().join('');
 
-                if (foundProtectedName) {
-                    postStatus = 'pending';
-                    isFlaggedForReview = true;
-                    reviewToastTitle = 'Post Submitted for Review';
-                    reviewToastDescription = `This post has been flagged because it contains a protected name: "${foundProtectedName}". It will be reviewed by an admin.`;
+                  if (
+                      titleLower.includes(protectedName.toLowerCase()) || // Direct match
+                      normalizedTitle.includes(normalizedProtectedName) || // Obfuscated match
+                      normalizedTitle.includes(reversedProtectedName) // Reversed match
+                  ) {
+                      postStatus = 'pending';
+                      isFlaggedForReview = true;
+                      reviewToastTitle = 'Post Submitted for Review';
+                      reviewToastDescription = `This post has been flagged because it appears to mention a protected name: "${protectedName}". It will be reviewed by an admin.`;
+                      break; 
+                  }
                 }
             }
         } catch (error) {

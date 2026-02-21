@@ -18,7 +18,6 @@ export const PERMISSIONS = {
   delete_users: 'Delete any user account from the application.',
   manage_forbidden_words: 'Manage the list of forbidden words.',
   manage_protected_names: 'Manage a list of protected names to block from post titles.',
-  manage_forbidden_names: 'Manage a list of AI-scanned forbidden names.',
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

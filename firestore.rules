@@ -94,8 +94,7 @@ service cloud.firestore {
       // Only specific admins can WRITE settings
       allow write: if isSuperAdmin() || (isAdmin() && (
         (document == 'config' && hasPermission('manage_forbidden_words')) ||
-        (document == 'protectedNames' && hasPermission('manage_protected_names')) ||
-        (document == 'forbiddenNames' && hasPermission('manage_forbidden_names'))
+        (document == 'protectedNames' && hasPermission('manage_protected_names'))
       ));
     }
   }

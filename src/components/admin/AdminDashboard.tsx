@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Loader2, Trash2, UserPlus, X, Search, ShieldCheck, ShieldOff, Check, Ban, Settings, ShieldX } from 'lucide-react';
+import { Loader2, Trash2, UserPlus, X, Search, ShieldCheck, ShieldOff, Check, Ban, Settings } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -39,7 +39,6 @@ const PERMISSIONS_CONFIG: { id: Permission; label: string; description: string }
     { id: 'delete_users', label: 'User Deletion', description: 'Can delete any user account from the application.' },
     { id: 'manage_forbidden_words', label: 'Word Filter', description: 'Can manage the list of forbidden words.' },
     { id: 'manage_protected_names', label: 'Protected Names', description: 'Manage a list of protected names to block from post titles.' },
-    { id: 'manage_forbidden_names', label: 'Forbidden Names', description: 'Manage a list of semantically forbidden names.' },
 ];
 
 const permissionsSchema = z.object({
@@ -265,7 +264,7 @@ function PostManager() {
                             {post.status === 'pending' && userProfile?.permissions?.approve_pictures && (
                                 <div className='flex-1 flex gap-2'>
                                     <Button variant="destructive" size="sm" onClick={() => handlePostStatusChange(post.id, 'rejected')} disabled={updating[post.id]}>
-                                        {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldX className="h-4 w-4" />}
+                                        {updating[post.id] ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
                                         <span className="ml-2">Reject</span>
                                     </Button>
                                     <Button variant="default" size="sm" onClick={() => handlePostStatusChange(post.id, 'approved')} disabled={updating[post.id]}>
@@ -930,132 +929,6 @@ function ProtectedNamesManager() {
 }
 // #endregion
 
-// #region Forbidden Names Manager
-function ForbiddenNamesManager() {
-    const [forbiddenNames, setForbiddenNames] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [newName, setNewName] = useState('');
-    const [isUpdating, startTransition] = useTransition();
-    const { toast } = useToast();
-    const { t } = useLocale();
-    const settingsRef = useMemo(() => doc(db, 'settings', 'forbiddenNames'), []);
-
-    const fetchSettings = useCallback(() => {
-        setLoading(true);
-        getDoc(settingsRef).then(docSnap => {
-            if (docSnap.exists()) {
-                setForbiddenNames(docSnap.data().names || []);
-            } else {
-                setDoc(settingsRef, { names: [] }, { merge: true })
-                .then(() => setForbiddenNames([]))
-                .catch(error => {
-                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'create', requestResourceData: { names: [] }});
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-            }
-        }).catch(e => {
-            const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'get' });
-            errorEmitter.emit('permission-error', permissionError);
-        }).finally(() => {
-            setLoading(false);
-        });
-    }, [settingsRef]);
-
-    useEffect(() => {
-        fetchSettings();
-    }, [fetchSettings]);
-
-    const handleAddName = () => {
-        startTransition(() => {
-            const name = newName.trim().toLowerCase();
-            if (!name) return;
-            if (forbiddenNames.includes(name)) {
-                toast({ title: t('admin.nameExistsTitle'), description: t('admin.nameExistsDescription', { name }), variant: "default" });
-                return;
-            }
-
-            const updatedNames = [...forbiddenNames, name].sort();
-            setDoc(settingsRef, { names: updatedNames }, { merge: true })
-                .then(() => {
-                    toast({ title: t('toasts.success'), description: t('admin.forbiddenNameAdded', { name }) });
-                    setForbiddenNames(updatedNames);
-                    setNewName('');
-                })
-                .catch(error => {
-                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-        });
-    };
-
-    const handleRemoveName = (nameToRemove: string) => {
-        startTransition(() => {
-            const updatedNames = forbiddenNames.filter(n => n !== nameToRemove);
-             setDoc(settingsRef, { names: updatedNames }, { merge: true })
-                .then(() => {
-                    toast({ title: t('toasts.success'), description: t('admin.forbiddenNameRemoved', { name: nameToRemove }) });
-                    setForbiddenNames(updatedNames);
-                })
-                .catch(error => {
-                    const permissionError = new FirestorePermissionError({ path: settingsRef.path, operation: 'update', requestResourceData: { names: updatedNames }});
-                    errorEmitter.emit('permission-error', permissionError);
-                });
-        });
-    };
-
-    if (loading) {
-        return <Skeleton className="h-64 w-full" />
-    }
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle>{t('admin.forbiddenNamesTitle')}</CardTitle>
-                <CardDescription>{t('admin.forbiddenNamesDescription')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="flex gap-2">
-                    <Input 
-                        value={newName}
-                        onChange={e => setNewName(e.target.value)}
-                        placeholder={t('admin.addNamePlaceholder')}
-                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddName(); } }}
-                        disabled={isUpdating}
-                    />
-                    <Button onClick={handleAddName} disabled={isUpdating || !newName.trim()}>
-                        {isUpdating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {t('admin.addName')}
-                    </Button>
-                </div>
-                <div className="border rounded-md p-4 h-64 overflow-y-auto">
-                    {forbiddenNames.length === 0 ? (
-                        <div className="flex h-full items-center justify-center">
-                            <p className="text-muted-foreground">{t('admin.noNames')}</p>
-                        </div>
-                    ) : (
-                         <div className="flex flex-wrap gap-2">
-                            {forbiddenNames.map(name => (
-                                <div key={name} className="flex items-center gap-1.5 rounded-full border bg-secondary px-2.5 py-1 text-sm font-semibold text-secondary-foreground">
-                                    <span>{name}</span>
-                                    <button 
-                                        onClick={() => handleRemoveName(name)} 
-                                        disabled={isUpdating} 
-                                        className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-secondary-foreground/70 transition-colors hover:bg-background/20 hover:text-secondary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                                        aria-label={`Remove ${name}`}
-                                    >
-                                        <X className="h-3.5 w-3.5" />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </CardContent>
-        </Card>
-    );
-}
-// #endregion
-
 
 export function AdminDashboard() {
   const { userProfile, loading: authLoading } = useAuth();
@@ -1097,7 +970,6 @@ export function AdminDashboard() {
           {userProfile?.permissions?.manage_admins && <TabsTrigger value="admins">{t('admin.manageAdmins')}</TabsTrigger>}
           {userProfile?.permissions?.manage_forbidden_words && <TabsTrigger value="settings">{t('admin.wordFilter')}</TabsTrigger>}
           {userProfile?.permissions?.manage_protected_names && <TabsTrigger value="names">{t('admin.protectedNames')}</TabsTrigger>}
-          {userProfile?.permissions?.manage_forbidden_names && <TabsTrigger value="forbidden_names">{t('admin.forbiddenNames')}</TabsTrigger>}
         </TabsList>
       </div>
       <TabsContent value="posts" className="mt-4">
@@ -1126,11 +998,6 @@ export function AdminDashboard() {
        {userProfile?.permissions?.manage_protected_names && (
         <TabsContent value="names" className="mt-4">
           <ProtectedNamesManager />
-        </TabsContent>
-       )}
-       {userProfile?.permissions?.manage_forbidden_names && (
-        <TabsContent value="forbidden_names" className="mt-4">
-          <ForbiddenNamesManager />
         </TabsContent>
        )}
     </Tabs>
