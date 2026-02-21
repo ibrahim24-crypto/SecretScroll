@@ -88,7 +88,7 @@ function containsProtectedName(title: string, protectedNames: string[]): boolean
         }
       }
     }
-    if (matchCount >= Math.ceil(protectedWords.length / 2)) {
+    if (matchCount === protectedWords.length && protectedWords.length > 0) {
       return true;
     }
   }
@@ -282,6 +282,7 @@ export default function EditPostPage() {
       }
       
       // 3. If not flagged yet, check external API -> PENDING
+      /* // Temporarily disabled to prevent false positives on normal names.
       if (contentToCheck.trim() && !isFlagged) {
           try {
               const checkRes = await fetch('/api/check-content', {
@@ -312,6 +313,7 @@ export default function EditPostPage() {
               reviewToastDescription = "There was an issue automatically checking the content. It has been submitted for manual review.";
           }
       }
+      */
       
       const postRef = doc(db, 'posts', post.id);
 
