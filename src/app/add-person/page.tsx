@@ -52,10 +52,7 @@ const socialButtons = [
     { label: 'Website', icon: LinkIcon }
 ];
 
-/**
- * Checks if the given title contains any variation (typo, reversed words, etc.)
- * of any name in the protectedNames list.
- */
+
 function containsProtectedName(title: string, protectedNames: string[]): boolean {
   const normalizedTitle = title.toLowerCase().replace(/[^a-z0-9\s]/g, '');
   const titleWords = normalizedTitle.split(/\s+/).filter(w => w.length > 1);
@@ -64,7 +61,7 @@ function containsProtectedName(title: string, protectedNames: string[]): boolean
     const normalizedProtected = protectedName.toLowerCase().replace(/[^a-z0-9\s]/g, '');
     const protectedWords = normalizedProtected.split(/\s+/).filter(w => w.length > 1);
 
-    // 1. Direct check (original and reversed full string)
+    // 1. Direct full string match (original and reversed full)
     const fullString = normalizedProtected.replace(/\s/g, '');
     const reversedFull = fullString.split('').reverse().join('');
     const titleCompact = normalizedTitle.replace(/\s/g, '');
@@ -72,25 +69,36 @@ function containsProtectedName(title: string, protectedNames: string[]): boolean
       return true;
     }
 
-    // 2. Reversed word order check
+    // 2. Reversed word order check (e.g., "ezzine ibrahim")
     const reversedWordsOrder = protectedWords.slice().reverse().join('');
     if (titleCompact.includes(reversedWordsOrder)) {
       return true;
     }
+    
+    // 3. Check for reversed individual words (exact match)
+    for (const pWord of protectedWords) {
+      const reversedPWord = pWord.split('').reverse().join('');
+      if (titleWords.includes(reversedPWord)) {
+        return true; // e.g., "miharbi" matches reversed "ibrahim"
+      }
+    }
 
-    // 3. Fuzzy match on each word (allow small typos)
-    const THRESHOLD = 2; // max edits (insert/delete/substitute) per word
+    // 4. Fuzzy match on each word (including reversed versions)
+    const THRESHOLD = 2; // for typos like "ibrqhi" → "ibrahim"
     let matchCount = 0;
     for (const pWord of protectedWords) {
+      const reversedPWord = pWord.split('').reverse().join('');
       for (const tWord of titleWords) {
-        const distance = levenshtein.get(pWord, tWord);
+        const distance = Math.min(
+          levenshtein.get(pWord, tWord),
+          levenshtein.get(reversedPWord, tWord)
+        );
         if (distance <= THRESHOLD) {
           matchCount++;
-          break; // this protected word matched some title word
+          break;
         }
       }
     }
-    // If at least half of the protected words match loosely, flag it
     if (matchCount >= Math.ceil(protectedWords.length / 2)) {
       return true;
     }
@@ -181,36 +189,34 @@ export default function CreatePostPage() {
 
   const onSubmit = (data: PostFormValues) => {
     startTransition(async () => {
+      // Default to 'approved'. It will be changed if any check fails.
       let postStatus: 'pending' | 'approved' | 'rejected' = 'approved';
-      let isFlaggedForReview = false;
+      let isFlagged = false;
       let reviewToastTitle = '';
       let reviewToastDescription = '';
 
-      // 1. Check against protected names list
-      if (!isFlaggedForReview) {
-        try {
-            const protectedNamesRef = doc(db, 'settings', 'protectedNames');
-            const protectedNamesSnap = await getDoc(protectedNamesRef);
-            if (protectedNamesSnap.exists()) {
-                const protectedNames = protectedNamesSnap.data().names as string[];
-                if (containsProtectedName(data.title, protectedNames)) {
-                      postStatus = 'rejected';
-                      isFlaggedForReview = true;
-                      reviewToastTitle = 'Post Rejected';
-                      reviewToastDescription = `This post was automatically rejected because its title appears to contain a protected name.`;
-                }
-            }
-        } catch (error) {
-            console.error("Error checking protected names:", error);
-        }
+      // 1. Check against protected names list -> REJECT
+      try {
+          const protectedNamesRef = doc(db, 'settings', 'protectedNames');
+          const protectedNamesSnap = await getDoc(protectedNamesRef);
+          if (protectedNamesSnap.exists()) {
+              const protectedNames = protectedNamesSnap.data().names as string[];
+              if (containsProtectedName(data.title, protectedNames)) {
+                    postStatus = 'rejected';
+                    isFlagged = true; // Stop other checks
+                    reviewToastTitle = 'Post Rejected';
+                    reviewToastDescription = `This post was automatically rejected because its title appears to contain a protected name.`;
+              }
+          }
+      } catch (error) {
+          console.error("Error checking protected names:", error);
       }
-
 
       const contentToCheck = `${data.title} ${data.content || ''}`;
 
-      if (contentToCheck.trim() && !isFlaggedForReview) {
+      // 2. Check against local forbidden words list -> PENDING
+      if (contentToCheck.trim() && !isFlagged) {
         try {
-          // 2. Check against local forbidden words list first
           const settingsRef = doc(db, 'settings', 'config');
           const settingsSnap = await getDoc(settingsRef);
           if (settingsSnap.exists()) {
@@ -221,7 +227,7 @@ export default function CreatePostPage() {
 
               if (foundWords.length > 0) {
                   postStatus = 'pending';
-                  isFlaggedForReview = true;
+                  isFlagged = true; // Stop other checks
                   reviewToastTitle = 'Post Submitted for Review';
                   reviewToastDescription = `This post has been flagged for containing inappropriate words: ${foundWords.join(", ")}. It will be reviewed by an admin.`;
               }
@@ -231,25 +237,25 @@ export default function CreatePostPage() {
         }
       }
       
-      if (contentToCheck.trim() && !isFlaggedForReview) {
+      // 3. If not flagged yet, check external API -> PENDING
+      if (contentToCheck.trim() && !isFlagged) {
           try {
-              // 3. If not flagged yet, check external API
               const checkRes = await fetch('/api/check-content', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: contentToCheck }),
               });
 
-              if (!checkRes.ok) {
+              if (!checkRes.ok) { // API call itself failed
                 postStatus = 'pending';
-                isFlaggedForReview = true;
+                isFlagged = true;
                 reviewToastTitle = "Post Submitted for Review";
                 reviewToastDescription = "We couldn't automatically verify the content, so it will be manually reviewed by an admin.";
               } else {
                   const { flagged } = await checkRes.json();
-                  if (flagged) {
+                  if (flagged) { // API flagged the content
                     postStatus = 'pending';
-                    isFlaggedForReview = true;
+                    isFlagged = true;
                     reviewToastTitle = "Post Submitted for Review";
                     reviewToastDescription = `This post has been flagged for review due to potentially inappropriate content.`;
                   }
@@ -257,7 +263,7 @@ export default function CreatePostPage() {
           } catch (error) {
               console.error("Error checking content:", error);
               postStatus = 'pending';
-              isFlaggedForReview = true;
+              isFlagged = true;
               reviewToastTitle = "Post Submitted for Review";
               reviewToastDescription = "There was an issue automatically checking the content. It has been submitted for manual review.";
           }
@@ -285,7 +291,7 @@ export default function CreatePostPage() {
         authorUid: user ? user.uid : "anonymous_guest",
         authorDisplayName: user?.displayName,
         visibility: 'public' as const,
-        isFlagged: isFlaggedForReview,
+        isFlagged: isFlagged,
         upvotes: 0,
         downvotes: 0,
         reports: 0,
@@ -303,7 +309,7 @@ export default function CreatePostPage() {
 
       addDoc(postCollectionRef, cleanPostData)
         .then(() => {
-          if (isFlaggedForReview) {
+          if (isFlagged) {
             toast({ 
                 title: reviewToastTitle, 
                 description: reviewToastDescription, 
