@@ -40,7 +40,7 @@ function WelcomeReel() {
 }
 
 export function Feed() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { t } = useLocale();
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,18 +74,15 @@ export function Feed() {
     
     setLoading(true);
     const postsRef = collection(db, 'posts');
-    let q;
-
-    if (userProfile?.role === 'admin') {
-      q = query(postsRef, orderBy('createdAt', 'desc'), limit(BATCH_SIZE));
-    } else {
-      q = query(
-        postsRef,
-        where('status', '==', 'approved'),
-        orderBy('createdAt', 'desc'),
-        limit(BATCH_SIZE)
-      );
-    }
+    
+    // The main feed should only show approved posts for all users.
+    // Admins can use the dashboard to see pending/rejected posts.
+    const q = query(
+      postsRef,
+      where('status', '==', 'approved'),
+      orderBy('createdAt', 'desc'),
+      limit(BATCH_SIZE)
+    );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const newPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Post));
@@ -102,31 +99,22 @@ export function Feed() {
     });
 
     return () => unsubscribe();
-  }, [authLoading, userProfile, processAndSetUserVotes]);
+  }, [authLoading, processAndSetUserVotes]);
   
   const fetchMorePosts = useCallback(async () => {
     if (!hasMore || loadingMore || !lastVisible) return;
     setLoadingMore(true);
 
     const postsRef = collection(db, 'posts');
-    let q;
     
-    if (userProfile?.role === 'admin') {
-        q = query(
-            postsRef,
-            orderBy('createdAt', 'desc'),
-            startAfter(lastVisible),
-            limit(BATCH_SIZE)
-        );
-    } else {
-        q = query(
-            postsRef,
-            where('status', '==', 'approved'),
-            orderBy('createdAt', 'desc'),
-            startAfter(lastVisible),
-            limit(BATCH_SIZE)
-        );
-    }
+    // The main feed should only show approved posts for all users.
+    const q = query(
+        postsRef,
+        where('status', '==', 'approved'),
+        orderBy('createdAt', 'desc'),
+        startAfter(lastVisible),
+        limit(BATCH_SIZE)
+    );
 
     try {
       const documentSnapshots = await getDocs(q);
@@ -143,7 +131,7 @@ export function Feed() {
     } finally {
       setLoadingMore(false);
     }
-  }, [hasMore, loadingMore, lastVisible, processAndSetUserVotes, userProfile]);
+  }, [hasMore, loadingMore, lastVisible, processAndSetUserVotes]);
 
 
   const lastElementRef = useCallback(node => {
