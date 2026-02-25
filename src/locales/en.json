@@ -227,15 +227,23 @@
   "patchNotesPage": {
     "title": "Patch Notes",
     "subtitle": "See what's new in Secret Scroll.",
-    "v3_title": "Version 3.0: The Emerald Update",
-    "v3_item1": "UI Refresh: Switched to the new 'Slate' theme with a vibrant lime accent for a modern look.",
-    "v3_item2": "Added Patch Notes: This very page was created to keep you updated on all new features and fixes.",
-    "v3_item3": "About Page Update: The 'About' page has been updated to its third version.",
+    "v3_title": "Version 3.0: The Emerald & International Update",
+    "v3_item1": "UI Refresh: Introduced a new 'Slate' theme with a vibrant lime accent and a full theme switcher with multiple color options (Purple, Green, Slate).",
+    "v3_item2": "Instagram Reels-Style UI: Implemented a full-screen, vertical swipe feed for mobile users for a modern, immersive experience.",
+    "v3_item3": "Internationalization (i18n): Added full support for English, French, and Arabic, complete with a language switcher in the header.",
+    "v3_item4": "Patch Notes Page: Created this very page to document our development journey and keep you informed of all new features and fixes.",
+    "v3_item5": "Improved Onboarding: Added a disclaimer screen for first-time users that requires explicit agreement before entering the app.",
     "v2_title": "Version 2.0: The Sentinel Update",
-    "v2_item1": "Enhanced Protected Names: Merged and improved name checking to be more powerful and accurate against typos and reversed names.",
-    "v2_item2": "Smarter Moderation Flow: Posts are now correctly approved or rejected based on content, providing a clearer user experience.",
+    "v2_item1": "Advanced Protected Names: Implemented a powerful fuzzy-matching system to block protected names even if they are reversed or misspelled.",
+    "v2_item2": "Smarter Moderation Flow: Posts with protected names are now immediately rejected, while other flagged content goes to a pending queue for admin review.",
+    "v2_item3": "Granular Admin Permissions: Overhauled the admin system. Super admins can now grant specific permissions (e.g., 'approve_pictures', 'delete_posts') to other admins.",
+    "v2_item4": "Secure Firestore Rules: Iteratively fixed and hardened security rules to prevent permission errors and correctly enforce role-based access.",
+    "v2_item5": "User & Comment Moderation: Admins can now view all users and delete any comment directly from the dashboard or comment sheets.",
+    "v2_item6": "Manual Word Filter: Re-introduced the manual 'Forbidden Words' list alongside the AI checker for more precise control.",
     "v1_title": "Version 1.0: Initial Release",
-    "v1_item1": "Core Features: Anonymous posting, voting, and commenting system.",
-    "v1_item2": "Admin Dashboard: Tools for content moderation and user management."
+    "v1_item1": "Core Features: Anonymous and pseudonymous posting, voting, and commenting system.",
+    "v1_item2": "Authentication: Support for both Google Sign-In and unique Anonymous guest accounts.",
+    "v1_item3": "Image Uploads: Integrated Cloudinary for robust image hosting and delivery.",
+    "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management."
   }
 }

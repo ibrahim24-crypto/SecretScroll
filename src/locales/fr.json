@@ -227,15 +227,23 @@
   "patchNotesPage": {
     "title": "Notes de version",
     "subtitle": "Découvrez les nouveautés de Secret Scroll.",
-    "v3_title": "Version 3.0 : La mise à jour Émeraude",
-    "v3_item1": "Refonte de l'interface utilisateur : Passage au nouveau thème 'Slate' avec un accent citron vert vibrant pour un look moderne.",
-    "v3_item2": "Ajout des notes de version : Cette page a été créée pour vous tenir informé de toutes les nouvelles fonctionnalités et corrections.",
-    "v3_item3": "Mise à jour de la page 'À propos' : La page 'À propos' a été mise à jour vers sa troisième version.",
+    "v3_title": "Version 3.0 : La mise à jour Émeraude & Internationale",
+    "v3_item1": "Refonte de l'interface utilisateur : Introduction d'un nouveau thème 'Slate' avec un accent citron vert vibrant et un sélecteur de thème complet avec plusieurs options de couleurs (Violet, Vert, Ardoise).",
+    "v3_item2": "Interface style Reels d'Instagram : Implémentation d'un fil de balayage vertical en plein écran pour les utilisateurs mobiles pour une expérience moderne et immersive.",
+    "v3_item3": "Internationalisation (i18n) : Ajout du support complet pour l'anglais, le français et l'arabe, avec un sélecteur de langue dans l'en-tête.",
+    "v3_item4": "Page des notes de version : Création de cette page même pour documenter notre parcours de développement et vous tenir informé de toutes les nouvelles fonctionnalités et corrections.",
+    "v3_item5": "Amélioration de l'accueil : Ajout d'un écran d'avertissement pour les nouveaux utilisateurs qui nécessite un accord explicite avant d'entrer dans l'application.",
     "v2_title": "Version 2.0 : La mise à jour Sentinelle",
-    "v2_item1": "Noms protégés améliorés : Fusion et amélioration de la vérification des noms pour être plus puissante et précise contre les fautes de frappe et les noms inversés.",
-    "v2_item2": "Flux de modération plus intelligent : Les posts sont maintenant correctement approuvés ou rejetés en fonction du contenu, offrant une expérience utilisateur plus claire.",
+    "v2_item1": "Noms protégés avancés : Implémentation d'un système de correspondance approximative puissant pour bloquer les noms protégés même s'ils sont inversés ou mal orthographiés.",
+    "v2_item2": "Flux de modération plus intelligent : Les posts avec des noms protégés sont maintenant immédiatement rejetés, tandis que les autres contenus signalés vont dans une file d'attente pour examen par l'administrateur.",
+    "v2_item3": "Permissions d'administrateur granulaires : Révision du système d'administration. Les super administrateurs peuvent maintenant accorder des permissions spécifiques (par exemple, 'approve_pictures', 'delete_posts') à d'autres administrateurs.",
+    "v2_item4": "Règles de sécurité Firestore : Correction et durcissement itératifs des règles de sécurité pour prévenir les erreurs de permission et appliquer correctement l'accès basé sur les rôles.",
+    "v2_item5": "Modération des utilisateurs et des commentaires : Les administrateurs peuvent maintenant voir tous les utilisateurs et supprimer n'importe quel commentaire directement depuis le tableau de bord ou les fiches de commentaires.",
+    "v2_item6": "Filtre de mots manuel : Réintroduction de la liste manuelle des 'Mots interdits' à côté du vérificateur IA pour un contrôle plus précis.",
     "v1_title": "Version 1.0 : Version initiale",
-    "v1_item1": "Fonctionnalités de base : Système de publication, de vote et de commentaire anonyme.",
-    "v1_item2": "Tableau de bord Admin : Outils pour la modération de contenu et la gestion des utilisateurs."
+    "v1_item1": "Fonctionnalités de base : Système de publication, de vote et de commentaire anonyme et pseudonyme.",
+    "v1_item2": "Authentification : Support pour la connexion Google et les comptes d'invités anonymes uniques.",
+    "v1_item3": "Téléchargement d'images : Intégration de Cloudinary pour un hébergement et une livraison d'images robustes.",
+    "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs."
   }
 }

@@ -41,6 +41,8 @@ export default function PatchNotesPage() {
                         <li>{t('patchNotesPage.v3_item1')}</li>
                         <li>{t('patchNotesPage.v3_item2')}</li>
                         <li>{t('patchNotesPage.v3_item3')}</li>
+                        <li>{t('patchNotesPage.v3_item4')}</li>
+                        <li>{t('patchNotesPage.v3_item5')}</li>
                     </ul>
                 </CardContent>
             </Card>
@@ -53,6 +55,10 @@ export default function PatchNotesPage() {
                      <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
                         <li>{t('patchNotesPage.v2_item1')}</li>
                         <li>{t('patchNotesPage.v2_item2')}</li>
+                        <li>{t('patchNotesPage.v2_item3')}</li>
+                        <li>{t('patchNotesPage.v2_item4')}</li>
+                        <li>{t('patchNotesPage.v2_item5')}</li>
+                        <li>{t('patchNotesPage.v2_item6')}</li>
                     </ul>
                 </CardContent>
             </Card>
@@ -65,6 +71,8 @@ export default function PatchNotesPage() {
                      <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
                         <li>{t('patchNotesPage.v1_item1')}</li>
                         <li>{t('patchNotesPage.v1_item2')}</li>
+                        <li>{t('patchNotesPage.v1_item3')}</li>
+                        <li>{t('patchNotesPage.v1_item4')}</li>
                     </ul>
                 </CardContent>
             </Card>
