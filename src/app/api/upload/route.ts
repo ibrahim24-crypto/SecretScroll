@@ -13,8 +13,8 @@ export async function POST(request: Request) {
       folder: 'secretscroll_uploads',
     });
     return NextResponse.json({ url: result.secure_url });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cloudinary Upload Error:', error);
-    return NextResponse.json({ error: 'Upload failed.' }, { status: 500 });
+    return NextResponse.json({ error: 'Upload failed.', message: error.message || 'An unknown server error occurred.' }, { status: 500 });
   }
 }
