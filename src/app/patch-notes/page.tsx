@@ -40,6 +40,7 @@ export default function PatchNotesPage() {
                     <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
                         <li>{t('patchNotesPage.v4_item1')}</li>
                         <li>{t('patchNotesPage.v4_item2')}</li>
+                        <li>{t('patchNotesPage.v4_item3')}</li>
                     </ul>
                 </CardContent>
             </Card>

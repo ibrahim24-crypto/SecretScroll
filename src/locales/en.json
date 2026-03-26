@@ -246,9 +246,10 @@
     "v1_item2": "Authentication: Support for both Google Sign-In and unique Anonymous guest accounts.",
     "v1_item3": "Image Uploads: Integrated Cloudinary for robust image hosting and delivery.",
     "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management.",
-    "v4_title": "Version 4.0: Mobile Revolution",
-    "v4_item1": "Official Android APK Release: Published the native Secret Scroll app on Android, providing full feature parity with the web platform.",
-    "v4_item2": "Download Page: Added a dedicated download page where users can easily access and download the APK file."
+    "v4_title": "Version 4.0: Flutter Mobile App",
+    "v4_item1": "Flutter Android APK Release: Launched the native Secret Scroll app built with Flutter (1.0.0), offering full feature parity with the web platform on Android devices.",
+    "v4_item2": "Cross-Platform Support: Built with Flutter for smooth performance and native Android integration with Firebase Auth, Cloud Firestore, and Google Sign-In.",
+    "v4_item3": "Download Page: Added a dedicated download page for easy APK access and installation."
   },
   "downloadPage": {
     "title": "Download Secret Scroll",

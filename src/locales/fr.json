@@ -246,9 +246,10 @@
     "v1_item2": "Authentification : Support pour la connexion Google et les comptes d'invités anonymes uniques.",
     "v1_item3": "Téléchargement d'images : Intégration de Cloudinary pour un hébergement et une livraison d'images robustes.",
     "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs.",
-    "v4_title": "Version 4.0 : Révolution mobile",
-    "v4_item1": "Lancement officiel d'APK Android : Publication de l'application Secret Scroll native sur Android, offrant une parité complète des fonctionnalités avec la plateforme web.",
-    "v4_item2": "Page de téléchargement : Ajout d'une page de téléchargement dédiée où les utilisateurs peuvent facilement accéder et télécharger le fichier APK."
+    "v4_title": "Version 4.0 : Application mobile Flutter",
+    "v4_item1": "Lancement d'APK Android Flutter : Publication de l'application Secret Scroll native créée avec Flutter (1.0.0), offrant une parité complète des fonctionnalités avec la plateforme web sur les appareils Android.",
+    "v4_item2": "Support multiplateforme : Construit avec Flutter pour des performances fluides et une intégration Android native avec Firebase Auth, Cloud Firestore et Google Sign-In.",
+    "v4_item3": "Page de téléchargement : Ajout d'une page de téléchargement dédiée pour un accès facile à l'APK et son installation."
   },
   "downloadPage": {
     "title": "Télécharger Secret Scroll",
