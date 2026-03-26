@@ -245,7 +245,8 @@
     "v1_item1": "Fonctionnalités de base : Système de publication, de vote et de commentaire anonyme et pseudonyme.",
     "v1_item2": "Authentification : Support pour la connexion Google et les comptes d'invités anonymes uniques.",
     "v1_item3": "Téléchargement d'images : Intégration de Cloudinary pour un hébergement et une livraison d'images robustes.",
-    "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs."
+    "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs.",
+    "v3_item6": "Distribution d'application mobile : Lancement de l'APK Android officielle avec parité complète avec l'application web, permettant aux utilisateurs d'accéder à Secret Scroll sur leurs appareils."
   },
   "downloadPage": {
     "title": "Télécharger Secret Scroll",

@@ -245,7 +245,8 @@
     "v1_item1": "Core Features: Anonymous and pseudonymous posting, voting, and commenting system.",
     "v1_item2": "Authentication: Support for both Google Sign-In and unique Anonymous guest accounts.",
     "v1_item3": "Image Uploads: Integrated Cloudinary for robust image hosting and delivery.",
-    "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management."
+    "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management.",
+    "v3_item6": "Mobile App Distribution: Released official Android APK with full feature parity to the web app, enabling users to access Secret Scroll on their devices."
   },
   "downloadPage": {
     "title": "Download Secret Scroll",
