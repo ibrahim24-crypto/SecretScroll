@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, type ReactNode } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, onIdTokenChanged, signOut, type User } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { AuthContext } from '@/hooks/useAuth';
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsubscribeProfile: () => void = () => {};
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
+    const unsubscribeAuth = onIdTokenChanged(auth, async (authUser) => {
       // Clean up previous profile listener
       unsubscribeProfile();
 
@@ -40,9 +40,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         unsubscribeProfile = onSnapshot(userRef, (docSnap) => {
           if (docSnap.exists()) {
             const profile = docSnap.data() as UserProfile;
+
+            // Sync displayName from Auth → Firestore if anonymous user's profile was created before updateProfile ran
+            if (authUser.displayName && !profile.displayName) {
+              setDoc(userRef, { displayName: authUser.displayName }, { merge: true }).catch(console.error);
+            }
+            const resolvedDisplayName = profile.displayName || authUser.displayName;
             
             if (authUser.email === 'ibrahimezzine09@gmail.com') {
-              const superAdminProfile = { ...profile, role: 'admin' as const, permissions: allPermissions };
+              const superAdminProfile = { ...profile, role: 'admin' as const, permissions: allPermissions, displayName: resolvedDisplayName };
               if (JSON.stringify(profile.permissions) !== JSON.stringify(allPermissions) || profile.role !== 'admin') {
                 setDoc(userRef, { role: 'admin', permissions: allPermissions }, { merge: true })
                   .then(() => setUserProfile(superAdminProfile))
@@ -52,9 +58,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               }
             } else {
               const currentPermissions = profile.permissions || noPermissions;
-              const userProfileWithDefaults = { ...profile, permissions: currentPermissions };
-               if (!profile.permissions) {
-                 setDoc(userRef, { permissions: currentPermissions }, { merge: true })
+              const currentRole = profile.role || 'user';
+              const userProfileWithDefaults = { ...profile, role: currentRole, permissions: currentPermissions, displayName: resolvedDisplayName };
+               if (!profile.permissions || !profile.role) {
+                 setDoc(userRef, { role: currentRole, permissions: currentPermissions }, { merge: true })
                     .then(() => setUserProfile(userProfileWithDefaults))
                     .catch(console.error);
               } else {
@@ -87,11 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                       path: userRef.path, operation: 'create', requestResourceData: newUserProfile,
                   });
                   errorEmitter.emit('permission-error', permissionError);
+                  // Return to login if profile creation fails
+                  signOut(auth);
               });
           }
           setLoading(false);
-        }, (error) => {
+        }, (error: any) => {
             console.error("Error listening to user profile:", error);
+            if (error.code === 'permission-denied') {
+                signOut(auth);
+            }
             setLoading(false);
         });
 

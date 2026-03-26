@@ -33,8 +33,9 @@
     "copyright": "Droits d'auteur",
     "patchNotes": "Notes de version",
     "signOut": "Se déconnecter",
-    "anonymousUser": "Utilisateur anonyme",
-    "user": "Utilisateur"
+    "user": "Utilisateur",
+    "anonymousUser": "Utilisateur Anonyme",
+    "downloadApp": "Télécharger l'application"
   },
   "createPost": {
     "title": "Créer un post",
@@ -245,5 +246,11 @@
     "v1_item2": "Authentification : Support pour la connexion Google et les comptes d'invités anonymes uniques.",
     "v1_item3": "Téléchargement d'images : Intégration de Cloudinary pour un hébergement et une livraison d'images robustes.",
     "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs."
+  },
+  "downloadPage": {
+    "title": "Télécharger Secret Scroll",
+    "subtitle": "Obtenez l'application Android officielle pour accéder à toutes les fonctionnalités en déplacement.",
+    "downloadButton": "Télécharger l'APK",
+    "instructions": "Après le téléchargement, vous devrez peut-être autoriser l'installation de sources inconnues dans les paramètres de votre appareil."
   }
 }

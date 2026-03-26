@@ -39,7 +39,10 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       allow create: if request.resource.data.uid == request.auth.uid;
-      allow update: if isSuperAdmin() || (isAdmin() && hasPermission('manage_admins'));
+      allow update: if (isOwner(userId) && 
+                         (resource.data.get('permissions', null) == null || request.resource.data.permissions == resource.data.permissions || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['permissions'])) &&
+                         (resource.data.get('role', null) == null || request.resource.data.role == resource.data.role || request.resource.data.role == 'user' || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']))
+                       ) || isSuperAdmin() || (isAdmin() && hasPermission('manage_admins'));
       allow delete: if (isSuperAdmin() || (isAdmin() && hasPermission('delete_users'))) && request.auth.uid != userId;
     }
 

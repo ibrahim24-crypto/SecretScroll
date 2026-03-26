@@ -8,9 +8,9 @@ import { Plus, AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
-import { signInWithPopup, signInAnonymously, updateProfile, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup, signInAnonymously, updateProfile, signOut, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleAuthProvider, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -112,6 +112,35 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
         // If name is not taken, proceed with login
         const userCredential = await signInAnonymously(auth);
         await updateProfile(userCredential.user, { displayName: trimmedName });
+
+        // Explicitly update the Firestore profile to ensure displayName is not null
+        const userRef = doc(db, 'users', userCredential.user.uid);
+        try {
+            await setDoc(userRef, { 
+                uid: userCredential.user.uid, 
+                displayName: trimmedName,
+                updatedAt: serverTimestamp()
+            }, { merge: true });
+
+            // Record that this name is taken
+            const nameRecordRef = doc(db, 'userDisplayNames', trimmedName);
+            await setDoc(nameRecordRef, { uid: userCredential.user.uid });
+        } catch (error: any) {
+            console.error('Error syncing to Firestore during login:', error);
+            // If we can't write to Firestore, the profile is broken for this session.
+            // Sign out and reset UI so they return to the login screen.
+            await signOut(auth);
+            setDialogOpen(false);
+            setName('');
+            toast({
+                title: t('toasts.error'),
+                description: 'Failed to create user profile. Returning to login.',
+                variant: 'destructive',
+            });
+            setLoading(null);
+            return;
+        }
+
         toast({ title: t('toasts.welcomeUser', { name: trimmedName }) });
         onComplete();
         // No need to set dialog or loading state to false as the component unmounts
@@ -210,7 +239,7 @@ function WelcomeScreen({ onComplete }: { onComplete: () => void }) {
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { t } = useLocale();
   const [showWelcome, setShowWelcome] = useState<boolean | null>(null);
 
@@ -218,9 +247,10 @@ export default function HomePage() {
     if (authLoading) {
       setShowWelcome(null); // Show loading state
     } else {
-      setShowWelcome(!user); // If user exists (anon or google), hide welcome. Otherwise show it.
+      // If no auth user, OR if auth user exists but no Firestore profile was found/created
+      setShowWelcome(!user || !userProfile);
     }
-  }, [user, authLoading]);
+  }, [user, userProfile, authLoading]);
   
   const handleLoginComplete = () => {
     setShowWelcome(false);

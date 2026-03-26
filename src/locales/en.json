@@ -33,8 +33,9 @@
     "copyright": "Copyright",
     "patchNotes": "Patch Notes",
     "signOut": "Sign out",
+    "user": "User",
     "anonymousUser": "Anonymous User",
-    "user": "User"
+    "downloadApp": "Download App"
   },
   "createPost": {
     "title": "Create a Post",
@@ -245,5 +246,11 @@
     "v1_item2": "Authentication: Support for both Google Sign-In and unique Anonymous guest accounts.",
     "v1_item3": "Image Uploads: Integrated Cloudinary for robust image hosting and delivery.",
     "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management."
+  },
+  "downloadPage": {
+    "title": "Download Secret Scroll",
+    "subtitle": "Get the official Android app to access all features on the go.",
+    "downloadButton": "Download APK",
+    "instructions": "After downloading, you may need to allow \"Install from unknown sources\" in your device settings."
   }
 }
