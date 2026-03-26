@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "@/hooks/useLocale";
 import { Badge } from "@/components/ui/badge";
@@ -38,15 +38,6 @@ export default function AboutPage() {
             <p>
               {t('aboutPage.p3')}
             </p>
-        </div>
-        
-        <div className="pt-6">
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/download">
-              <Download className="mr-2 h-5 w-5" />
-              {t('userMenu.downloadApp')}
-            </Link>
-          </Button>
         </div>
       </div>
     </main>

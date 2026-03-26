@@ -202,7 +202,7 @@
   "aboutPage": {
     "title": "À propos de Secret Scroll",
     "subtitle": "Découvrez des secrets, partagez des vérités.",
-    "version": "Version 3.0",
+    "version": "Version 4.0",
     "p1": "Secret Scroll est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
     "p2": "Que vous ayez une anecdote amusante, une réflexion profonde, une pensée aléatoire ou besoin d'un conseil, c'est votre espace pour le partager avec le monde, protégé par l'anonymat.",
     "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue. Vous pouvez accéder à Secret Scroll sur le web ou télécharger notre application Android officielle pour une expérience mobile transparente."
@@ -246,7 +246,9 @@
     "v1_item2": "Authentification : Support pour la connexion Google et les comptes d'invités anonymes uniques.",
     "v1_item3": "Téléchargement d'images : Intégration de Cloudinary pour un hébergement et une livraison d'images robustes.",
     "v1_item4": "Tableau de bord Admin de base : Outils initiaux pour la modération de contenu et la gestion des utilisateurs.",
-    "v3_item6": "Distribution d'application mobile : Lancement de l'APK Android officielle avec parité complète avec l'application web, permettant aux utilisateurs d'accéder à Secret Scroll sur leurs appareils."
+    "v4_title": "Version 4.0 : Révolution mobile",
+    "v4_item1": "Lancement officiel d'APK Android : Publication de l'application Secret Scroll native sur Android, offrant une parité complète des fonctionnalités avec la plateforme web.",
+    "v4_item2": "Page de téléchargement : Ajout d'une page de téléchargement dédiée où les utilisateurs peuvent facilement accéder et télécharger le fichier APK."
   },
   "downloadPage": {
     "title": "Télécharger Secret Scroll",

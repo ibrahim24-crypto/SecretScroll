@@ -202,7 +202,7 @@
   "aboutPage": {
     "title": "About Secret Scroll",
     "subtitle": "Uncover secrets, share truths.",
-    "version": "Version 3.0",
+    "version": "Version 4.0",
     "p1": "Secret Scroll is a platform for anonymous expression. We believe in the power of sharing stories, thoughts, and confessions without the fear of judgment. Our community is built on trust, respect, and the shared human experience.",
     "p2": "Whether you have a funny anecdote, a deep reflection, a random thought, or need some advice, this is your space to share it with the world, protected by anonymity.",
     "p3": "Our mission is to create a safe and open environment where every voice can be heard. You can access Secret Scroll on web or download our official Android app for a seamless mobile experience."
@@ -246,7 +246,9 @@
     "v1_item2": "Authentication: Support for both Google Sign-In and unique Anonymous guest accounts.",
     "v1_item3": "Image Uploads: Integrated Cloudinary for robust image hosting and delivery.",
     "v1_item4": "Basic Admin Dashboard: Initial tools for content moderation and user management.",
-    "v3_item6": "Mobile App Distribution: Released official Android APK with full feature parity to the web app, enabling users to access Secret Scroll on their devices."
+    "v4_title": "Version 4.0: Mobile Revolution",
+    "v4_item1": "Official Android APK Release: Published the native Secret Scroll app on Android, providing full feature parity with the web platform.",
+    "v4_item2": "Download Page: Added a dedicated download page where users can easily access and download the APK file."
   },
   "downloadPage": {
     "title": "Download Secret Scroll",
