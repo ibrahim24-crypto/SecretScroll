@@ -9,6 +9,7 @@
 - Scrollable Reel: Implement an Instagram Reels-style UI for viewing secrets in an infinitely scrolling feed.
 - Admin Moderation: Admin users can access a moderation queue to approve/reject submitted secrets and user reports.
 - AI powered category selection: Suggest the most appropriate category when submitting new person using a LLM tool.
+- Mobile App Distribution: Provide official Android APK download for mobile access with full feature parity with web app.
 
 ## Style Guidelines:
 
