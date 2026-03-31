@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "@/hooks/useLocale";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,15 +86,6 @@ export default function PatchNotesPage() {
                     </ul>
                 </CardContent>
             </Card>
-        </div>
-        
-        <div className="pt-8 border-t">
-          <Button asChild size="lg" className="w-full sm:w-auto">
-            <Link href="/download">
-              <Download className="mr-2 h-5 w-5" />
-              {t('userMenu.downloadApp')}
-            </Link>
-          </Button>
         </div>
       </div>
     </main>
