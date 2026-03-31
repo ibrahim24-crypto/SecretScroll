@@ -39,6 +39,16 @@ export default function AboutPage() {
               {t('aboutPage.p3')}
             </p>
         </div>
+
+        <div className="pt-8 border-t space-y-4">
+          <h2 className="text-2xl font-bold">{t('aboutPage.developer')}</h2>
+          <p className="text-secondary-foreground">{t('aboutPage.developerInfo')}</p>
+          <Button asChild variant="outline">
+            <a href="https://github.com/ibrahim24-crypto" target="_blank" rel="noopener noreferrer">
+              {t('aboutPage.visitGithub')}
+            </a>
+          </Button>
+        </div>
       </div>
     </main>
   );

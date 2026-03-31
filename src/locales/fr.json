@@ -205,7 +205,10 @@
     "version": "Version 0.2.0",
     "p1": "Secret Scroll est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
     "p2": "Que vous ayez une anecdote amusante, une réflexion profonde, une pensée aléatoire ou besoin d'un conseil, c'est votre espace pour le partager avec le monde, protégé par l'anonymat.",
-    "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue. Vous pouvez accéder à Secret Scroll sur le web ou télécharger notre application Android officielle pour une expérience mobile transparente."
+    "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue. Vous pouvez accéder à Secret Scroll sur le web ou télécharger notre application Android officielle pour une expérience mobile transparente.",
+    "developer": "Développeur",
+    "developerInfo": "Créé et maintenu par Ibrahim (ibrahim24-crypto). Passionné par la création de plateformes sécurisées et anonymes qui favorisent la liberté d'expression.",
+    "visitGithub": "Visitez le profil GitHub"
   },
   "copyrightPage": {
     "title": "Politique de droits d'auteur",
