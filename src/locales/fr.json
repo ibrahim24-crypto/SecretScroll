@@ -202,7 +202,7 @@
   "aboutPage": {
     "title": "À propos de Secret Scroll",
     "subtitle": "Découvrez des secrets, partagez des vérités.",
-    "version": "Version 4.0",
+    "version": "Version 0.2.0",
     "p1": "Secret Scroll est une plateforme d'expression anonyme. Nous croyons au pouvoir de partager des histoires, des pensées et des confessions sans crainte de jugement. Notre communauté est bâtie sur la confiance, le respect et l'expérience humaine partagée.",
     "p2": "Que vous ayez une anecdote amusante, une réflexion profonde, une pensée aléatoire ou besoin d'un conseil, c'est votre espace pour le partager avec le monde, protégé par l'anonymat.",
     "p3": "Notre mission est de créer un environnement sûr et ouvert où chaque voix peut être entendue. Vous pouvez accéder à Secret Scroll sur le web ou télécharger notre application Android officielle pour une expérience mobile transparente."
@@ -228,6 +228,10 @@
   "patchNotesPage": {
     "title": "Notes de version",
     "subtitle": "Découvrez les nouveautés de Secret Scroll.",
+    "v5_title": "Version 0.2.0 : Mise à jour de la galerie modale d'images",
+    "v5_item1": "Modale galerie d'images en taille réelle : Ajout d'une galerie d'images cliquable avec affichage modal en plein écran pour voir les images dans leur rapport d'aspect d'origine.",
+    "v5_item2": "Navigation d'images : Naviguer entre les images en utilisant les boutons fléchés ou le clavier dans la modale avec un compteur d'images affichant la position actuelle.",
+    "v5_item3": "Expérience utilisateur améliorée : Ajout d'effets au survol sur les images de la galerie pour indiquer qu'elles sont cliquables, améliorant la découverte de la nouvelle fonctionnalité.",
     "v3_title": "Version 3.0 : La mise à jour Émeraude & Internationale",
     "v3_item1": "Refonte de l'interface utilisateur : Introduction d'un nouveau thème 'Slate' avec un accent citron vert vibrant et un sélecteur de thème complet avec plusieurs options de couleurs (Violet, Vert, Ardoise).",
     "v3_item2": "Interface style Reels d'Instagram : Implémentation d'un fil de balayage vertical en plein écran pour les utilisateurs mobiles pour une expérience moderne et immersive.",

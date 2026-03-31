@@ -31,10 +31,23 @@ export default function PatchNotesPage() {
         <div className="space-y-6">
             <Card>
                 <CardHeader>
-                    <CardTitle>{t('patchNotesPage.v4_title')}</CardTitle>
+                    <CardTitle>{t('patchNotesPage.v5_title')}</CardTitle>
                     <CardDescription>
                         <Badge>Latest</Badge>
                     </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
+                        <li>{t('patchNotesPage.v5_item1')}</li>
+                        <li>{t('patchNotesPage.v5_item2')}</li>
+                        <li>{t('patchNotesPage.v5_item3')}</li>
+                    </ul>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>{t('patchNotesPage.v4_title')}</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
@@ -56,22 +69,6 @@ export default function PatchNotesPage() {
                         <li>{t('patchNotesPage.v3_item3')}</li>
                         <li>{t('patchNotesPage.v3_item4')}</li>
                         <li>{t('patchNotesPage.v3_item5')}</li>
-                    </ul>
-                </CardContent>
-            </Card>
-
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('patchNotesPage.v2_title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <ul className="list-disc list-inside space-y-2 text-secondary-foreground">
-                        <li>{t('patchNotesPage.v2_item1')}</li>
-                        <li>{t('patchNotesPage.v2_item2')}</li>
-                        <li>{t('patchNotesPage.v2_item3')}</li>
-                        <li>{t('patchNotesPage.v2_item4')}</li>
-                        <li>{t('patchNotesPage.v2_item5')}</li>
-                        <li>{t('patchNotesPage.v2_item6')}</li>
                     </ul>
                 </CardContent>
             </Card>

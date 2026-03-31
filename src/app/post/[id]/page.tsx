@@ -11,11 +11,14 @@ import Image from 'next/image';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { ImageModal } from '@/components/ImageModal';
 
 
 export default function PostDetailPage({ params }: { params: { id: string } }) {
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   useEffect(() => {
     if (params.id) {
@@ -37,6 +40,19 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
   }, [params.id]);
 
   const approvedImages = post?.images?.filter(img => img.status === 'approved').map(img => img.url) || [];
+
+  const handleImageClick = (index: number) => {
+    setSelectedImageIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => (prev + 1) % approvedImages.length);
+  };
+
+  const handlePreviousImage = () => {
+    setSelectedImageIndex((prev) => (prev - 1 + approvedImages.length) % approvedImages.length);
+  };
 
   if (loading) {
     return (
@@ -100,13 +116,20 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                         <h3 className="text-xl font-semibold mb-4 border-t pt-4">Gallery</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                             {approvedImages.map((url, index) => (
-                                <div key={index} className="relative aspect-square group">
+                                <div 
+                                  key={index} 
+                                  className="relative aspect-square group cursor-pointer"
+                                  onClick={() => handleImageClick(index)}
+                                >
                                     <Image
                                         src={url}
                                         alt={`${post.title} image ${index + 1}`}
                                         fill
-                                        className="rounded-md object-cover"
+                                        className="rounded-md object-cover group-hover:opacity-90 transition-opacity"
                                     />
+                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-md flex items-center justify-center">
+                                      <span className="text-white opacity-0 group-hover:opacity-100 transition-opacity">Click to view</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -114,6 +137,15 @@ export default function PostDetailPage({ params }: { params: { id: string } }) {
                 ) : (
                     <p className="text-muted-foreground text-center py-4 border-t">This post has no approved images.</p>
                 )}
+
+                <ImageModal
+                  isOpen={isModalOpen}
+                  onClose={() => setIsModalOpen(false)}
+                  images={approvedImages}
+                  currentIndex={selectedImageIndex}
+                  onPrevious={handlePreviousImage}
+                  onNext={handleNextImage}
+                />
             </CardContent>
         </Card>
 
